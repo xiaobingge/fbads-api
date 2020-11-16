@@ -4,6 +4,10 @@ namespace App\Exceptions;
 
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
+use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 
 class Handler extends ExceptionHandler
 {
@@ -48,6 +52,19 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
+        // detect instance
+        if ($exception instanceof  UnauthorizedHttpException ) {
+            // detect previous instance
+            if ($exception->getPrevious() instanceof  TokenExpiredException ) {
+                return response()->json(['code'=>1024 ,'info' => 'TOKEN_EXPIRED'], $exception->getStatusCode());
+            } else if ($exception->getPrevious() instanceof TokenInvalidException) {
+                return response()->json(['code'=>1024 ,'info' => 'TOKEN_INVALID'], $exception->getStatusCode());
+            } else if ($exception->getPrevious() instanceof TokenBlacklistedException) {
+                return response()->json(['code'=>1024 ,'info' => 'TOKEN_BLACKLISTED'], $exception->getStatusCode());
+            } else {
+                return response()->json(['code'=>1024 ,'info' => "UNAUTHORIZED_REQUEST"], 401);
+            }
+        }
         return parent::render($request, $exception);
     }
 }
