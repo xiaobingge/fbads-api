@@ -56,13 +56,13 @@ class Handler extends ExceptionHandler
         if ($exception instanceof  UnauthorizedHttpException ) {
             // detect previous instance
             if ($exception->getPrevious() instanceof  TokenExpiredException ) {
-                return response()->json(['code'=>1024 ,'info' => 'TOKEN_EXPIRED'], $exception->getStatusCode());
+                return response()->json(['code'=>1024 ,'msg' => 'TOKEN_EXPIRED'], $exception->getStatusCode());
             } else if ($exception->getPrevious() instanceof TokenInvalidException) {
-                return response()->json(['code'=>1024 ,'info' => 'TOKEN_INVALID'], $exception->getStatusCode());
+                return response()->json(['code'=>1024 ,'msg' => 'TOKEN_INVALID'], $exception->getStatusCode());
             } else if ($exception->getPrevious() instanceof TokenBlacklistedException) {
-                return response()->json(['code'=>1024 ,'info' => 'TOKEN_BLACKLISTED'], $exception->getStatusCode());
+                return response()->json(['code'=>1024 ,'msg' => 'TOKEN_BLACKLISTED'], $exception->getStatusCode());
             } else {
-                return response()->json(['code'=>1024 ,'info' => "UNAUTHORIZED_REQUEST"], 401);
+                return response()->json(['code'=>1024 ,'msg' => "UNAUTHORIZED_REQUEST"], 401);
             }
         }
         return parent::render($request, $exception);
