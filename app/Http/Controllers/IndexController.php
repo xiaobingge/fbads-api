@@ -2,71 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Utils\FGuzzle6HttpClient;
-use App\Utils\FSessionDLaravelDataHandler;
-use Carbon\Carbon;
+
 use Facebook\Authentication\AccessToken;
 use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
-use Facebook\Facebook;
 use FacebookAds\Cursor;
-use FacebookAds\Object\AbstractCrudObject;
-use FacebookAds\Object\AdAccountUser;
 use FacebookAds\Object\Fields\CampaignFields;
-use FacebookAds\Object\User;
-use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Redirect;
 
 class IndexController extends Controller
 {
-
-    private static $_clientinstance;
-
-    /**
-     * @return \Facebook\Facebook
-     * @throws FacebookSDKException
-     */
-    private function getFbClient()
-    {
-        if (empty(static::$_clientinstance) || !(static::$_clientinstance instanceof \Facebook\Facebook)) {
-            $client = new \GuzzleHttp\Client([
-                'timeout' => 120,
-                'curl' => [
-                    CURLOPT_PROXY => 'socks5h://192.168.139.171',
-                    CURLOPT_PROXYPORT => 1080
-                ],
-            ]);
-
-            $persistentDataHandler = new FSessionDLaravelDataHandler();
-
-            static::$_clientinstance = new Facebook([
-                'app_id' => '663043711013811',
-                'app_secret' => '25faf0192fcc33270c0df783e2a1f902',
-                //'app_id' => '643785509628922',
-                //'app_secret' => '88c97a5ac648dfc605302380ee8ccf0a',
-                'default_graph_version' => 'v9.0',
-                'http_client_handler' => new FGuzzle6HttpClient($client),
-                'persistent_data_handler' => $persistentDataHandler
-            ]);
-        }
-        return static::$_clientinstance;
-    }
-
     public function login()
     {
-        $fb = $this->getFbClient();
 
-        $helper = $fb->getRedirectLoginHelper();
         $cacheKey = 'com.juanpi.facebook.login.token.663043711013811';
         $accessToken = \Cache::get($cacheKey);
 
         if (!\Cache::has($cacheKey) || empty($accessToken)) {
-            $helper = $fb->getRedirectLoginHelper();
             try {
-                $accessTokenHelper = $helper->getAccessToken();
+                $accessTokenHelper = \FacebookSdk::getAccessToken();
                 print_r($accessTokenHelper);
                 if ($accessTokenHelper instanceof AccessToken) {
                     // The OAuth 2.0 client handler helps us manage access tokens
-//                    $oAuth2Client = $fb->getOAuth2Client();
+                    // $oAuth2Client = \FacebookSdk::getOAuth2Client();
+
                     $accessToken = $accessTokenHelper->getValue();
                     var_dump($accessTokenHelper->isLongLived());
 //                    if (!$accessTokenHelper->isLongLived()) {
@@ -82,7 +42,7 @@ class IndexController extends Controller
 //                        }
 //                    }
 
-                    \Cache::put($cacheKey, $accessToken, $accessTokenHelper->getExpiresAt());
+                    \Cache::put($cacheKey, $accessToken, $accessTokenHelper->getExpiresAt() ?: 36000);
                 }
             } catch (FacebookResponseException $e) {
                 // When Graph returns an error
@@ -99,13 +59,34 @@ class IndexController extends Controller
             echo "You are logged in!";
             try {
                 // Returns a `Facebook\Response` object
-                $response = $fb->get('/me?fields=id,name', $accessToken);
+                $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions', $accessToken);
 
                 $user = $response->getGraphUser();
 
-                \DB::insert("INSERT INTO `ad_auth` (`type`, `user_id`, `name`, `access_token`) VALUES (?, ?, ?, ?);", [
-                    1, $user['id'], $user['name'], $accessToken
-                ]);
+                // $adaccounts = [];
+                foreach($user['adaccounts'] as $adaccount) {
+                    // echo $adaccount['account_id'] . '-' . $adaccount['id'] . '<br />';
+                    \App\Models\AdAccount::firstOrCreate(
+                        [
+                            'user_id' => $user['id'],
+                            'ad_account_int' =>$adaccount['account_id'],
+                            'ad_account' => $adaccount['id']
+                        ]
+                    );
+                }
+
+                $permissions = [];
+                foreach ($user['permissions'] as $permission) {
+                    $permissions[] = $permission['permission'];
+                }
+
+                \App\Models\AdAuth::updateOrCreate(
+                    ['type' => 1, 'user_id' => $user['id']],
+                    [
+                        'name' => $user['name'], 'email' => $user['email'],
+                        'scope' => implode(',', $permissions),
+                        'access_token' => $accessToken]
+                );
 
             } catch(\Facebook\Exception\ResponseException $e) {
                 echo 'Graph returned an error: ' . $e->getMessage();
@@ -128,7 +109,7 @@ class IndexController extends Controller
                 'pages_read_user_content',
                 'pages_manage_metadata'
             ];
-            $loginUrl = $helper->getLoginUrl('https://facebook.juanpi.com/facebook/login', $permissions);
+            $loginUrl = \FacebookSdk::getLoginUrl($permissions, 'facebook_login'); //    $helper->getLoginUrl(Redirect::route('facebook_login'), $permissions);
             echo '<a href="' . $loginUrl . '">Log in with Facebook</a>';
         }
     }
@@ -136,9 +117,9 @@ class IndexController extends Controller
     public function me()
     {
         $accessToken = $this->getAccessToken();
-        $fb = $this->getFbClient();
+
         try {
-            $response = $fb->get('/me?fields=id,name', $accessToken);
+            $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions', $accessToken);
         } catch(\Facebook\Exception\ResponseException $e) {
             echo 'Graph returned an error: ' . $e->getMessage();
             exit;
@@ -149,7 +130,17 @@ class IndexController extends Controller
 
         $user = $response->getGraphUser();
 
-        return 'ID: ' . $user['id'] . '|' . 'Name: ' . $user['name'];
+        echo 'adaccounts<br />';
+        foreach($user['adaccounts'] as $adaccount) {
+            echo $adaccount['account_id'] . '-' . $adaccount['id'] . '<br />';
+        }
+
+        echo 'permissions<br />';
+        foreach ($user['permissions'] as $permission) {
+            echo $permission['permission'] . '<br />';
+        }
+
+        return 'Email: ' . $user['email'] . '<br />ID: ' . $user['id'] . '<br />Name: ' . $user['name'];
     }
 
 
@@ -193,17 +184,15 @@ class IndexController extends Controller
 //        print_r($response->getDecodedBody());
     }
 
-
     public function accounts()
     {
         $accessToken = $this->getAccessToken();
 
-        $fb = $this->getFbClient();
         /* PHP SDK v5.0.0 */
         /* make the API call */
         try {
             // Returns a `Facebook\FacebookResponse` object
-            $response = $fb->get(
+            $response = \FacebookSdk::get(
                 '/111581780701071/accounts',
                 $accessToken
             );
@@ -222,29 +211,238 @@ class IndexController extends Controller
 
     public function campaigns()
     {
-        $this->getFaceBookClient();
+//        $this->getFaceBookClient();
         $account_id = 'act_1074776236311593';
-        $user_id = '111581780701071';
 
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
         try {
-            $cursor = (new \FacebookAds\Object\AdAccount($account_id))->getCampaigns();
-
-            if ($cursor instanceof Cursor) {
-                print_r($cursor->getLastResponse()->getContent());
-            } else if ($cursor instanceof \FacebookAds\Http\Response) {
-                print_r($cursor->getContent());
-            } else if ($cursor instanceof \FacebookAds\Object\AbstractCrudObject) {
-                print_r($cursor->exportData());
-            }
-
-            // Loop over objects
-            foreach ($cursor as $campaign) {
-                echo $campaign->{CampaignFields::NAME} . PHP_EOL;
-            }
-        } catch (\Exception $e) {
-            print_r($e->getMessage());
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::get(
+                '/'.$account_id.'/campaigns?effective_status=%5B%22ACTIVE%22%2C%22PAUSED%22%5D&fields=name%2Cobjective',
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
         }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
+
+//        try {
+//            $cursor = (new \FacebookAds\Object\AdAccount($account_id))->getCampaigns();
+//
+//            if ($cursor instanceof Cursor) {
+//                print_r($cursor->getLastResponse()->getContent());
+//            } else if ($cursor instanceof \FacebookAds\Http\Response) {
+//                print_r($cursor->getContent());
+//            } else if ($cursor instanceof \FacebookAds\Object\AbstractCrudObject) {
+//                print_r($cursor->exportData());
+//            }
+//
+//            // Loop over objects
+//            foreach ($cursor as $campaign) {
+//                echo $campaign->{CampaignFields::NAME} . PHP_EOL;
+//            }
+//        } catch (\Exception $e) {
+//            print_r($e->getMessage());
+//        }
     }
+
+    public function create_campaign()
+    {
+        $account_id = 'act_1074776236311593';
+
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
+        try {
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::post(
+                '/'.$account_id.'/campaigns',
+                [
+                    'name' => 'My campaign',
+                    'objective' => 'LINK_CLICKS',
+                    'status' => 'PAUSED',
+                    'special_ad_categories' => '[]',
+                ],
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
+        }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
+    }
+
+    public function adsets()
+    {
+//        $this->getFaceBookClient();
+        $account_id = 'act_1074776236311593';
+        $campaign_id = 23846206403900607;
+
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
+        try {
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::get(
+                '/'.$account_id.'/adsets',
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
+        }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
+
+    }
+
+    public function create_adset()
+    {
+        $account_id = 'act_1074776236311593';
+        $campaign_id = 23846206403900607;
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
+        try {
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::post(
+                '/'.$account_id.'/adsets',
+                [
+                    'name' => 'My First AdSet',
+                    'lifetime_budget' => '20000',
+                    'start_time' => '2020-11-23T23:15:26-0800',
+                    'end_time' => '2020-11-30T23:15:26-0800',
+                    'campaign_id' => $campaign_id,
+                    'bid_amount' => '500',
+                    'billing_event' => 'IMPRESSIONS',
+                    'optimization_goal' => 'POST_ENGAGEMENT',
+                    'targeting' => '{"age_min":20,"age_max":24,"behaviors":[{"id":6002714895372,"name":"All travelers"}],"genders":[1],"geo_locations":{"countries":["US"],"regions":[{"key":"4081"}],"cities":[{"key":"777934","radius":10,"distance_unit":"mile"}]},"life_events":[{"id":6002714398172,"name":"Newlywed (1 year)"}],"facebook_positions":["feed"],"publisher_platforms":["facebook","audience_network"]}',
+                    'status' => 'PAUSED',
+                ],
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
+        }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
+    }
+
+
+
+    // 受众
+    public function get_customaudiences()
+    {
+        $account_id = 'act_1074776236311593';
+
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
+        try {
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::get(
+                '/'.$account_id.'/customaudiences',
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
+        }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
+    }
+
+    public function create_customaudiences()
+    {
+//        $this->getFaceBookClient();
+        $account_id = 'act_1074776236311593';
+
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
+        try {
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::post(
+                '/'.$account_id.'/customaudiences',
+                [
+                    'name' => 'My new Custom Audience',
+                    'subtype' => 'CUSTOM',
+                    'description' => 'People who purchased on my website',
+                    'customer_file_source' => 'USER_PROVIDED_ONLY',
+                ],
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
+        }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
+
+//        try {
+//            $cursor = (new \FacebookAds\Object\AdAccount($account_id))->getCampaigns();
+//
+//            if ($cursor instanceof Cursor) {
+//                print_r($cursor->getLastResponse()->getContent());
+//            } else if ($cursor instanceof \FacebookAds\Http\Response) {
+//                print_r($cursor->getContent());
+//            } else if ($cursor instanceof \FacebookAds\Object\AbstractCrudObject) {
+//                print_r($cursor->exportData());
+//            }
+//
+//            // Loop over objects
+//            foreach ($cursor as $campaign) {
+//                echo $campaign->{CampaignFields::NAME} . PHP_EOL;
+//            }
+//        } catch (\Exception $e) {
+//            print_r($e->getMessage());
+//        }
+    }
+
+
+
 
     public function ads_archive()
     {
@@ -256,17 +454,66 @@ class IndexController extends Controller
 
     public function ads()
     {
-        $this->getFaceBookClient();
         $account_id = 'act_1074776236311593';
-        $user_id = '111581780701071';
 
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
         try {
-            $ads = (new \FacebookAds\Object\AdAccount($account_id))->getAds([\FacebookAds\Object\Fields\AdFields::NAME,]);
-            print_r($ads);
-        } catch (\Exception $e) {
-            print_r($e->getMessage());
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::get(
+                '/'.$account_id.'/ads',
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
         }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
     }
+
+
+    // 放弃..
+    public function create_ad()
+    {
+        $account_id = 'act_1074776236311593';
+        $adset_id = '23846206445800607';
+        $accessToken = $this->getAccessToken();
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
+        try {
+            // Returns a `Facebook\FacebookResponse` object
+            $response = \FacebookSdk::post(
+                '/'.$account_id.'/ads',
+                [
+                    'name' => 'My Ad',
+                    'adset_id' => $adset_id,
+                    'creative' => '{"creative": {\"name\": \"Ad1\", \"object_story_spec\": <SPEC>}}',
+                    'status' => 'PAUSED',
+                ],
+                $accessToken
+            );
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
+        }
+
+        // $graphNode = $response->getGraphNode();
+        /* handle the result */
+        print_r($response->getDecodedBody());
+    }
+
 
     public function test151()
     {

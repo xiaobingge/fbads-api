@@ -43,6 +43,25 @@ Route::group(['middleware' => ['web', 'wechat.oauth']], function () {
 });
 
 
+
+Route::any('/facebook/me', 'IndexController@me');
+Route::any('/facebook/adaccounts', 'IndexController@adaccounts');
+Route::any('/facebook/accounts', 'IndexController@accounts');
+
+Route::any('/facebook/get_customaudiences', 'IndexController@get_customaudiences');
+Route::any('/facebook/create_customaudiences', 'IndexController@create_customaudiences');
+
+
+Route::any('/facebook/campaigns', 'IndexController@campaigns');
+Route::any('/facebook/create_campaign', 'IndexController@create_campaign');
+
+Route::any('/facebook/adsets', 'IndexController@adsets');
+Route::any('/facebook/create_adset', 'IndexController@create_adset');
+
+Route::any('/facebook/ads', 'IndexController@ads');
+
+
+
 //后台管理系统路由
 Route::any('admin/loginCenter', 'Admin\LoginController@login');
 Route::group(['namespace' => 'Admin'], function () {
@@ -98,7 +117,4 @@ Route::group(['namespace' => 'Admin'], function () {
         });
     });
 });
-
-
-
 
