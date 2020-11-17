@@ -14,3 +14,17 @@
 Route::get('/', function () {
     return view('welcome');
 });
+
+
+
+Route::any('/facebook/login', 'IndexController@login')->name('facebook_login');
+
+Route::any('/facebook/me', 'IndexController@me');
+Route::any('/facebook/adaccounts', 'IndexController@adaccounts');
+
+Route::any('/facebook/accounts', 'IndexController@accounts');
+
+Route::any('/facebook/campaigns', 'IndexController@campaigns');
+Route::any('/facebook/ads', 'IndexController@ads');
+
+Route::any('/facebook/test151', 'IndexController@test151');
