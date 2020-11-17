@@ -88,10 +88,10 @@ class IndexController extends Controller
                         'access_token' => $accessToken]
                 );
 
-            } catch(\Facebook\Exception\ResponseException $e) {
+            } catch(FacebookResponseException $e) {
                 echo 'Graph returned an error: ' . $e->getMessage();
                 exit;
-            } catch(\Facebook\Exception\SDKException $e) {
+            } catch(FacebookSDKException $e) {
                 echo 'Facebook SDK returned an error: ' . $e->getMessage();
                 exit;
             }
@@ -120,10 +120,10 @@ class IndexController extends Controller
 
         try {
             $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions', $accessToken);
-        } catch(\Facebook\Exception\ResponseException $e) {
+        } catch(FacebookResponseException $e) {
             echo 'Graph returned an error: ' . $e->getMessage();
             exit;
-        } catch(\Facebook\Exception\SDKException $e) {
+        } catch(FacebookSDKException $e) {
             echo 'Facebook SDK returned an error: ' . $e->getMessage();
             exit;
         }
