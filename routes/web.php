@@ -42,6 +42,7 @@ Route::group(['middleware' => ['web', 'wechat.oauth']], function () {
     Route::get('wechat/auth', 'WeChatController@authLogin');
 });
 
+Route::any('/facebook/login', 'IndexController@login')->name('facebook_login');
 
 
 Route::any('/facebook/me', 'IndexController@me');
