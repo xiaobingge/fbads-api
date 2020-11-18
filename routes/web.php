@@ -95,6 +95,7 @@ Route::group(['namespace' => 'Admin'], function () {
             Route::get('user/updateStatus', 'UserController@updateStatus');
             Route::get('user/permission', 'UserController@getPermission');
             Route::post('user/setPermission', 'UserController@setPermission');
+            Route::get('user/delete', 'UserController@delete');
 
             //自定义菜单
             Route::get('wechat/getmenus', 'WechatController@getMenus');

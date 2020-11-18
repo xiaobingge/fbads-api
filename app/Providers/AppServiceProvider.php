@@ -7,52 +7,53 @@ use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Bootstrap any application services.
-     *
-     * @return void
-     */
-    public function boot()
-    {
-        //
-        Schema::defaultStringLength(191);
+	/**
+	 * Bootstrap any application services.
+	 *
+	 * @return void
+	 */
+	public function boot()
+	{
+		//
+		Schema::defaultStringLength(191);
+		error_reporting(E_ALL ^ E_NOTICE);
 
-        
-        $this->registerFacebookSdk();
-    }
 
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        //
-    }
+		$this->registerFacebookSdk();
+	}
 
-    /**
-     * Register the service providers.
-     *
-     * @return void
-     */
-    protected function registerFacebookSdk()
-    {
-        $this->app->singleton(\App\Utils\FacebookSdk::class, function () {
-            $proxyConfig = app('config')->get('facebook-sdk.proxy');
-            if ($proxyConfig['is_open'] && !empty($proxyConfig['host']) && !empty($proxyConfig['port'])) {
-                $client = new \GuzzleHttp\Client([
-                    'timeout' => 120,
-                    'curl' => [
-                        CURLOPT_PROXY => $proxyConfig['host'],
-                        CURLOPT_PROXYPORT => $proxyConfig['port']
-                    ],
-                ]);
-            } else {
-                $client = new \GuzzleHttp\Client(['timeout' => 120]);
-            }
+	/**
+	 * Register any application services.
+	 *
+	 * @return void
+	 */
+	public function register()
+	{
+		//
+	}
 
-            $config = app('config')->get('facebook-sdk.facebook_config');
+	/**
+	 * Register the service providers.
+	 *
+	 * @return void
+	 */
+	protected function registerFacebookSdk()
+	{
+		$this->app->singleton(\App\Utils\FacebookSdk::class, function () {
+			$proxyConfig = app('config')->get('facebook-sdk.proxy');
+			if ($proxyConfig['is_open'] && !empty($proxyConfig['host']) && !empty($proxyConfig['port'])) {
+				$client = new \GuzzleHttp\Client([
+					'timeout' => 120,
+					'curl' => [
+						CURLOPT_PROXY => $proxyConfig['host'],
+						CURLOPT_PROXYPORT => $proxyConfig['port']
+					],
+				]);
+			} else {
+				$client = new \GuzzleHttp\Client(['timeout' => 120]);
+			}
+
+			$config = app('config')->get('facebook-sdk.facebook_config');
 
 
 //            static::$_clientinstance = new \App\Utils\Facebook([
@@ -65,12 +66,12 @@ class AppServiceProvider extends ServiceProvider
 //                'persistent_data_handler' => new \App\Utils\FSessionDLaravelDataHandler()
 //            ]);
 
-            $config['http_client_handler'] = new \App\Utils\FGuzzle6HttpClient($client);
-            $config['persistent_data_handler'] = new \App\Utils\FSessionDLaravelDataHandler();
+			$config['http_client_handler'] = new \App\Utils\FGuzzle6HttpClient($client);
+			$config['persistent_data_handler'] = new \App\Utils\FSessionDLaravelDataHandler();
 
-            return new \App\Utils\FacebookSdk($config);
-        });
+			return new \App\Utils\FacebookSdk($config);
+		});
 
-        $this->app->alias(\App\Utils\FacebookSdk::class, 'FacebookSdk');
-    }
+		$this->app->alias(\App\Utils\FacebookSdk::class, 'FacebookSdk');
+	}
 }
