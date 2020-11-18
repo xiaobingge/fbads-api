@@ -7,6 +7,7 @@ use App\Models\AdAccount;
 use Facebook\Authentication\AccessToken;
 use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
+use Illuminate\Http\Request;
 
 class IndexController extends Controller
 {
@@ -209,12 +210,18 @@ class IndexController extends Controller
         print_r($response->getDecodedBody());
     }
 
-    public function campaigns()
+    public function campaigns(Request $request)
     {
-//        $this->getFaceBookClient();
-        $account_id = 'act_1074776236311593';
+        $act_account = $request->get('account');
 
-        $accessToken = $this->getAccessToken();
+        if (empty($act_account)) {
+            abort(404, '参数错误');
+        }
+
+//        $this->getFaceBookClient();
+        $account_id = 'act_' . $act_account;
+
+        $accessToken = $this->getAccessToken($act_account);
 
         /* PHP SDK v5.0.0 */
         /* make the API call */
@@ -289,13 +296,24 @@ class IndexController extends Controller
         print_r($response->getDecodedBody());
     }
 
-    public function adsets()
+    public function adsets(Request $request)
     {
 //        $this->getFaceBookClient();
-        $account_id = 'act_1074776236311593';
-        $campaign_id = 23846206403900607;
+        //$account_id = 'act_1074776236311593';
+        //$campaign_id = 23846206403900607;
 
-        $accessToken = $this->getAccessToken();
+        //$accessToken = $this->getAccessToken();
+
+        $act_account = $request->get('account');
+
+        if (empty($act_account)) {
+            abort(404, '参数错误');
+        }
+
+//        $this->getFaceBookClient();
+        $account_id = 'act_' . $act_account;
+
+        $accessToken = $this->getAccessToken($act_account);
 
         /* PHP SDK v5.0.0 */
         /* make the API call */
@@ -452,11 +470,18 @@ class IndexController extends Controller
     }
 
 
-    public function ads()
+    public function ads(Request $request)
     {
-        $account_id = 'act_1074776236311593';
+        $act_account = $request->get('account');
 
-        $accessToken = $this->getAccessToken();
+        if (empty($act_account)) {
+            abort(404, '参数错误');
+        }
+
+//        $this->getFaceBookClient();
+        $account_id = 'act_' . $act_account;
+
+        $accessToken = $this->getAccessToken($act_account);
 
         /* PHP SDK v5.0.0 */
         /* make the API call */
@@ -524,16 +549,21 @@ class IndexController extends Controller
 
 
 
-    private function getAccessToken()
+    private function getAccessToken($act_account)
     {
-        $cacheKey = 'com.juanpi.facebook.login.token.663043711013811';
-        $accessToken = \Cache::get($cacheKey);
-
-        if (!\Cache::has($cacheKey) || empty($accessToken)) {
-            // Token不存在就去登陆
-            redirect(route('facebook_login'));
+//        $cacheKey = 'com.juanpi.facebook.login.token.663043711013811';
+//        $accessToken = \Cache::get($cacheKey);
+//
+//        if (!\Cache::has($cacheKey) || empty($accessToken)) {
+//            // Token不存在就去登陆
+//            redirect(route('facebook_login'));
+//        }
+        $result = AdAccount::with('auth')->where('ad_account_int', $act_account)->first();
+        if (!empty($result) && !empty($result->auth->access_token)) {
+            return $result->auth->access_token;
         }
-        return $accessToken;
+
+        abort(404, '账号不存在');
     }
 
 

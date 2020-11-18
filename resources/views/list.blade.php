@@ -19,7 +19,14 @@
                     <td>{{ $info->user_id }}</td>
                     <td>{{ $info->auth->name }}</td>
                     <td>{{ $info->auth->email }}</td>
-                    <td></td>
+                    <td><a href="{{  url('/facebook/campaigns?account=' . $info->ad_account_int)  }}"
+                           target="_blank">广告系列</a>
+                        <a href="{{  url('/facebook/adsets?account=' . $info->ad_account_int)  }}"
+                           target="_blank">广告组</a>
+                        <a href="{{  url('/facebook/ads?account=' . $info->ad_account_int)  }}"
+                           target="_blank">广告</a>
+
+                    </td>
                 </tr>
             @endforeach
             </tbody>
