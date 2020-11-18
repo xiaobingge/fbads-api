@@ -3,32 +3,32 @@
 namespace App\Http\Controllers;
 
 
+use App\Models\AdAccount;
 use Facebook\Authentication\AccessToken;
 use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
-use FacebookAds\Cursor;
-use FacebookAds\Object\Fields\CampaignFields;
-use Illuminate\Routing\Route;
-use Illuminate\Support\Facades\Redirect;
 
 class IndexController extends Controller
 {
+    public function list()
+    {
+        $result = AdAccount::with('auth')->paginate(10);
+
+        return view('list')->with('result', $result);
+    }
+
+
     public function login()
     {
+        try {
+            $accessTokenHelper = \FacebookSdk::getAccessToken();
+            print_r($accessTokenHelper);
+            if ($accessTokenHelper instanceof AccessToken) {
+                // The OAuth 2.0 client handler helps us manage access tokens
+                // $oAuth2Client = \FacebookSdk::getOAuth2Client();
 
-        $cacheKey = 'com.juanpi.facebook.login.token.663043711013811';
-        $accessToken = \Cache::get($cacheKey);
-
-        if (!\Cache::has($cacheKey) || empty($accessToken)) {
-            try {
-                $accessTokenHelper = \FacebookSdk::getAccessToken();
-                print_r($accessTokenHelper);
-                if ($accessTokenHelper instanceof AccessToken) {
-                    // The OAuth 2.0 client handler helps us manage access tokens
-                    // $oAuth2Client = \FacebookSdk::getOAuth2Client();
-
-                    $accessToken = $accessTokenHelper->getValue();
-                    var_dump($accessTokenHelper->isLongLived());
+                $accessToken = $accessTokenHelper->getValue();
+                var_dump($accessTokenHelper->isLongLived());
 //                    if (!$accessTokenHelper->isLongLived()) {
 //
 //                        // Exchanges a short-lived access token for a long-lived one
@@ -42,17 +42,15 @@ class IndexController extends Controller
 //                        }
 //                    }
 
-                    \Cache::put($cacheKey, $accessToken, $accessTokenHelper->getExpiresAt() ?: 36000);
-                }
-            } catch (FacebookResponseException $e) {
-                // When Graph returns an error
-                echo 'Graph returned an error: ' . $e->getMessage();
-                exit;
-            } catch (FacebookSDKException $e) {
-                // When validation fails or other local issues
-                echo 'Facebook SDK returned an error: ' . $e->getMessage();
-                exit;
             }
+        } catch (FacebookResponseException $e) {
+            // When Graph returns an error
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch (FacebookSDKException $e) {
+            // When validation fails or other local issues
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
         }
 
         if (!empty($accessToken)) {
@@ -88,6 +86,8 @@ class IndexController extends Controller
                         'access_token' => $accessToken]
                 );
 
+
+                echo '<a href="' . route('facebook_list') . '">授权列表</a>';
             } catch(FacebookResponseException $e) {
                 echo 'Graph returned an error: ' . $e->getMessage();
                 exit;
