@@ -95,7 +95,6 @@ class SyncAdSetsCommand extends Command
 
             /* handle the result */
             $result = $response->getDecodedBody();
-            print_r($result);
             if (isset($result['data'])) {
                 foreach ($result['data'] as $adset) {
                     AdSet::updateOrCreate(

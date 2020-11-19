@@ -25,6 +25,8 @@
                            target="_blank">广告组</a>
                         <a href="{{  url('/facebook/ads?account=' . $info->ad_account_int)  }}"
                            target="_blank">广告</a>
+                        <a href="{{  url('/facebook/adspixels?account=' . $info->ad_account_int)  }}"
+                           target="_blank">像素</a>
 
                     </td>
                 </tr>

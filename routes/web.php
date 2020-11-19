@@ -63,8 +63,9 @@ Route::any('/facebook/adsets', 'IndexController@adsets');
 Route::any('/facebook/create_adset', 'IndexController@create_adset');
 
 Route::any('/facebook/ads', 'IndexController@ads');
+Route::any('/facebook/create_ad', 'IndexController@create_ad');
 
-
+Route::any('/facebook/adspixels', 'IndexController@adspixels');
 
 //后台管理系统路由
 Route::any('admin/loginCenter', 'Admin\LoginController@login');

@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 
 use App\Models\AdAccount;
+use App\Models\AdAuth;
+use App\Models\AdPage;
+use App\Models\AdPixel;
 use Facebook\Authentication\AccessToken;
 use Facebook\Exceptions\FacebookResponseException;
 use Facebook\Exceptions\FacebookSDKException;
@@ -23,13 +26,12 @@ class IndexController extends Controller
     {
         try {
             $accessTokenHelper = \FacebookSdk::getAccessToken();
-            print_r($accessTokenHelper);
             if ($accessTokenHelper instanceof AccessToken) {
                 // The OAuth 2.0 client handler helps us manage access tokens
                 // $oAuth2Client = \FacebookSdk::getOAuth2Client();
 
                 $accessToken = $accessTokenHelper->getValue();
-                var_dump($accessTokenHelper->isLongLived());
+                // var_dump($accessTokenHelper->isLongLived());
 //                    if (!$accessTokenHelper->isLongLived()) {
 //
 //                        // Exchanges a short-lived access token for a long-lived one
@@ -58,7 +60,7 @@ class IndexController extends Controller
             echo "You are logged in!";
             try {
                 // Returns a `Facebook\Response` object
-                $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions', $accessToken);
+                $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions,picture', $accessToken);
 
                 $user = $response->getGraphUser();
 
@@ -74,6 +76,20 @@ class IndexController extends Controller
                     );
                 }
 
+                // page
+                if (isset($user['accounts']) && count($user['accounts']) > 0) {
+                    foreach ($user['accounts'] as $ad_page) {
+                        AdPage::updateOrCreate(
+                            ['page_id' => $ad_page['id'], 'user_id' => $user['id']],
+                            [
+                                'access_token' => $ad_page['access_token'],
+                                'name' => $ad_page['name'],
+                                'tasks' => $ad_page['tasks']
+                            ]
+                        );
+                    }
+                }
+
                 $permissions = [];
                 foreach ($user['permissions'] as $permission) {
                     $permissions[] = $permission['permission'];
@@ -82,12 +98,14 @@ class IndexController extends Controller
                 \App\Models\AdAuth::updateOrCreate(
                     ['type' => 1, 'user_id' => $user['id']],
                     [
-                        'name' => $user['name'], 'email' => $user['email'],
+                        'name' => $user['name'],
+                        'email' => $user['email'],
                         'scope' => implode(',', $permissions),
+                        'avatar' => isset($user['picture']['data']['url']) ? $user['picture']['data']['url'] : '',
                         'access_token' => $accessToken]
                 );
 
-
+                // return redirect(route('facebook_list'));
                 echo '<a href="' . route('facebook_list') . '">授权列表</a>';
             } catch(FacebookResponseException $e) {
                 echo 'Graph returned an error: ' . $e->getMessage();
@@ -111,16 +129,18 @@ class IndexController extends Controller
                 'pages_manage_metadata'
             ];
             $loginUrl = \FacebookSdk::getLoginUrl($permissions, 'facebook_login'); //    $helper->getLoginUrl(Redirect::route('facebook_login'), $permissions);
-            echo '<a href="' . $loginUrl . '">Log in with Facebook</a>';
+            return redirect($loginUrl);// echo '<a href="' . $loginUrl . '">Log in with Facebook</a>';
         }
     }
 
     public function me()
     {
-        $accessToken = $this->getAccessToken();
+        $user_id = '111581780701071';
+        $info = AdAuth::where('user_id', $user_id)->first();
+        $accessToken = $info->access_token;
 
         try {
-            $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions', $accessToken);
+            $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions,picture', $accessToken);
         } catch(FacebookResponseException $e) {
             echo 'Graph returned an error: ' . $e->getMessage();
             exit;
@@ -134,6 +154,13 @@ class IndexController extends Controller
         echo 'adaccounts<br />';
         foreach($user['adaccounts'] as $adaccount) {
             echo $adaccount['account_id'] . '-' . $adaccount['id'] . '<br />';
+        }
+
+        // page
+        if (isset($user['accounts']) && count($user['accounts']) > 0) {
+            foreach ($user['accounts'] as $ad_page) {
+                echo $ad_page['id'] . '-' . $ad_page['name']  . '-' . $ad_page['tasks'] . '<br />';
+            }
         }
 
         echo 'permissions<br />';
@@ -208,6 +235,57 @@ class IndexController extends Controller
         // $graphNode = $response->getGraphNode();
         /* handle the result */
         print_r($response->getDecodedBody());
+    }
+
+    public function adspixels(Request $request)
+    {
+        $act_account = $request->get('account');
+
+        if (empty($act_account)) {
+            abort(404, '参数错误');
+        }
+
+//        $this->getFaceBookClient();
+        $account_id = 'act_' . $act_account;
+
+        $accessToken = $this->getAccessToken($act_account);
+
+        /* PHP SDK v5.0.0 */
+        /* make the API call */
+        try {
+            // Returns a `Facebook\FacebookResponse` object
+            /**
+             * @var \Facebook\FacebookResponse $response
+             */
+            $response = \FacebookSdk::get(
+                '/'.$account_id.'/adspixels?fields=id%2Cname%2Ccode',
+                $accessToken
+            );
+            $result = $response->getDecodedBody();
+            if (isset($result['data'])) {
+                foreach ($result['data'] as $pixel) {
+                    AdPixel::updateOrCreate(
+                        [
+                            'pixel_id' => $pixel['id'],
+                            'account_id' => $act_account,
+                        ],
+                        [
+                            'name' => $pixel['name'],
+                            'code' => $pixel['code']
+                        ]
+                    );
+
+                    echo 'Id: ' . $pixel['id'] . ' - Name: '. $pixel['name'] . '<br />';
+                }
+            }
+
+        } catch(\Facebook\Exceptions\FacebookResponseException $e) {
+            echo 'Graph returned an error: ' . $e->getMessage();
+            exit;
+        } catch(\Facebook\Exceptions\FacebookSDKException $e) {
+            echo 'Facebook SDK returned an error: ' . $e->getMessage();
+            exit;
+        }
     }
 
     public function campaigns(Request $request)
@@ -506,22 +584,45 @@ class IndexController extends Controller
 
 
     // 放弃..
-    public function create_ad()
+    public function create_ad(Request $request)
     {
-        $account_id = 'act_1074776236311593';
-        $adset_id = '23846206445800607';
-        $accessToken = $this->getAccessToken();
 
+        $act_account = $request->get('account');
+
+        if (empty($act_account)) {
+            abort(404, '参数错误');
+        }
+
+//        $this->getFaceBookClient();
+        $account_id = 'act_' . $act_account;
+
+        $accessToken = $this->getAccessToken($act_account);
+
+        $adset_id = '23846206445800607';
         /* PHP SDK v5.0.0 */
         /* make the API call */
         try {
+            $creative = [
+                'creative' => [
+                    'name' => 'ad creative 1',
+                    'object_story_spec' => [
+                        'page_id' => 103611704908895,
+                        'link_data' => [
+                            'message' => 'ad creative 1 message',
+                            'link' => 'https://www.github.com/lzh1104'
+                        ]
+                    ]
+                ]
+            ];
+
+
             // Returns a `Facebook\FacebookResponse` object
             $response = \FacebookSdk::post(
                 '/'.$account_id.'/ads',
                 [
                     'name' => 'My Ad',
                     'adset_id' => $adset_id,
-                    'creative' => '{"creative": {\"name\": \"Ad1\", \"object_story_spec\": <SPEC>}}',
+                    'creative' => json_encode($creative),
                     'status' => 'PAUSED',
                 ],
                 $accessToken
