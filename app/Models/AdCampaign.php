@@ -51,4 +51,11 @@ class AdCampaign extends Model
         'start_time',
         'updated_time',
     ];
+
+    public function accountAndAuth()
+    {
+        return $this->hasOne(AdAccount::class, 'ad_account_int', 'account_id')->with('auth');
+    }
+
+
 }

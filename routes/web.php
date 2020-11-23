@@ -42,14 +42,13 @@ Route::group(['middleware' => ['web', 'wechat.oauth']], function () {
     Route::get('wechat/auth', 'WeChatController@authLogin');
 });
 
-
+Route::any('/facebook/test151', 'IndexController@test151');
 Route::any('/facebook/list', 'IndexController@list')->name('facebook_list');
 
 Route::any('/facebook/login', 'IndexController@login')->name('facebook_login');
 
 
 Route::any('/facebook/me', 'IndexController@me');
-Route::any('/facebook/adaccounts', 'IndexController@adaccounts');
 Route::any('/facebook/accounts', 'IndexController@accounts');
 
 Route::any('/facebook/get_customaudiences', 'IndexController@get_customaudiences');
@@ -61,6 +60,10 @@ Route::any('/facebook/create_campaign', 'IndexController@create_campaign');
 
 Route::any('/facebook/adsets', 'IndexController@adsets');
 Route::any('/facebook/create_adset', 'IndexController@create_adset');
+
+Route::any('/facebook/insights_account', 'IndexController@insights_account');
+Route::any('/facebook/insights_campaign', 'IndexController@insights_campaign');
+
 
 Route::any('/facebook/ads', 'IndexController@ads');
 Route::any('/facebook/create_ad', 'IndexController@create_ad');

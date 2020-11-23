@@ -34,4 +34,11 @@ class AdAd extends Model
 //        'switch_status',
 //        'creative'
     ];
+
+
+    public function accountAndAuth()
+    {
+        return $this->hasOne(AdAccount::class, 'ad_account_int', 'account_id')->with('auth');
+    }
+
 }

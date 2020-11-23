@@ -33,4 +33,9 @@ class AdPage extends Model
         'status',
     ];
 
+
+    public function accountAndAuth()
+    {
+        return $this->hasOne(AdAccount::class, 'ad_account_int', 'account_id')->with('auth');
+    }
 }

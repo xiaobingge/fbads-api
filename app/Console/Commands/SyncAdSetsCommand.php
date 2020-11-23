@@ -114,7 +114,7 @@ class SyncAdSetsCommand extends Command
                             'optimization_goal' => $adset['optimization_goal'],
                             'targeting' => isset($adset['targeting']) ? json_encode($adset['targeting']) : '',
                             'promoted_object' => isset($adset['promoted_object']) ? json_encode($adset['promoted_object']) : '',
-                            'attribution_spec' => isset($adset['attribution_spec']) ? $adset['attribution_spec'] : '',
+                            'attribution_spec' => isset($adset['attribution_spec']) ? json_encode($adset['attribution_spec']) : '',
                             'destination_type' => isset($adset['destination_type']) ? $adset['destination_type'] : '',
 
                             'created_time' => date('Y-m-d H:i:s', strtotime($adset['created_time'])),

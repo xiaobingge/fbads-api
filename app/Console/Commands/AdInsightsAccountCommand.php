@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\AdAccount;
+use App\Models\AdInsightsAccount;
 use Illuminate\Console\Command;
 
 class AdInsightsAccountCommand extends Command
@@ -12,7 +13,7 @@ class AdInsightsAccountCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'sync:ad-insights-account';
+    protected $signature = 'sync:ad-insights-account {account?}';
 
     /**
      * The console command description.
@@ -38,8 +39,14 @@ class AdInsightsAccountCommand extends Command
      */
     public function handle()
     {
+        $account = $this->argument('account');
         do {
-            $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+            if (!empty($account)) {
+                $result = AdAccount::with('auth')->where('ad_account_int', $account)->paginate(20);
+            } else {
+                $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+            }
+
             $items = $result->items();
             if (count($items) <= 0) {
                 break;
@@ -52,28 +59,8 @@ class AdInsightsAccountCommand extends Command
                         'date_preset' => 'yesterday',
                         'level' => 'account',
                         'fields' => implode(',', [
-
-                            'account_currency',
-                            // 'account_id',
-                            'account_name',
-                            'action_values',
-                            'ad_id',
-                            'adset_id',
-                            'campaign_id',
-                            'objective',
-                            'account_id',
-                            'buying_type',
-                            'clicks',
-                            'cpc',
-                            'cpm',
-                            'cpp',
-                            'ctr',
-                            'date_start',
-                            'date_stop',
-                            'full_view_impressions',
-                            'impressions',
-                            // 'action_values',
-                            'actions',
+                            'account_currency','account_id','account_name','action_values','actions','buying_type',
+                            'canvas_avg_view_percent','canvas_avg_view_time','clicks','conversion_rate_ranking','conversion_values','conversions','converted_product_quantity','converted_product_value','cost_per_action_type','cost_per_conversion','cost_per_estimated_ad_recallers','cost_per_inline_link_click','cost_per_inline_post_engagement','cost_per_outbound_click','cost_per_thruplay','cost_per_unique_action_type','cost_per_unique_click','cost_per_unique_inline_link_click','cost_per_unique_outbound_click','cpc','cpm','cpp','ctr','date_start','date_stop','engagement_rate_ranking','estimated_ad_recall_rate','estimated_ad_recallers','frequency','full_view_impressions','full_view_reach','impressions','inline_link_click_ctr','inline_link_clicks','inline_post_engagement','objective','qualifying_question_qualify_answer_rate','quality_ranking','reach','social_spend','spend','unique_clicks','unique_ctr','unique_inline_link_click_ctr','unique_inline_link_clicks','unique_link_clicks_ctr'
                         ])
                     ]);
                 }
@@ -97,11 +84,21 @@ class AdInsightsAccountCommand extends Command
 
             /* handle the result */
             $result = $response->getDecodedBody();
-            print_r($result);
-            return 0;
             if (isset($result['data'])) {
-                foreach ($result['data'] as $campaign) {
+                foreach ($result['data'] as $tmp_data) {
 
+                    array_walk($tmp_data, function (&$val, $key) {
+                        if (is_array($val)) {
+                            $val = json_encode($val);
+                        }
+                    });
+
+                    AdInsightsAccount::updateOrCreate(
+                        [
+                            'account_id'  => $tmp_data['account_id'],
+                        ],
+                        $tmp_data
+                    );
 
                 }
             }
