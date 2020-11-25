@@ -30,3 +30,12 @@ Route::group(['middleware' => 'auth.jwt'], function () {
 
 });
 
+
+Route::group([], function () {
+	Route::get('getShopifyCollectCount', 'FaceApiController@getShopifyCollectCount');
+	Route::get('getShopifyCollectList', 'FaceApiController@getShopifyCollectList');
+	Route::get('getShopifyGoodCount', 'FaceApiController@getShopifyGoodCount');
+	Route::get('getShopifyGoodList', 'FaceApiController@getShopifyGoodList');
+
+});
+
