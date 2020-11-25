@@ -13,7 +13,7 @@ class SyncAdCampaignsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'sync:adcampaigns';
+    protected $signature = 'sync:adcampaigns {--account=} {--start_date=} {--end_date=}';
 
     /**
      * The console command description.
@@ -39,8 +39,17 @@ class SyncAdCampaignsCommand extends Command
      */
     public function handle()
     {
+        $account = $this->option('account');
+        $start_date = $this->option('start_date');
+        $end_date = $this->option('end_date');
+
         do {
-            $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+            if (!empty($account)) {
+                $result = AdAccount::with('auth')->where('ad_account_int', $account)->paginate(20);
+            } else {
+                $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+            }
+
             $items = $result->items();
             if (count($items) <= 0) {
                 break;
@@ -50,11 +59,7 @@ class SyncAdCampaignsCommand extends Command
                 if (!empty($item->ad_account) && !empty($item->auth) && !empty($item->auth->access_token)) {
                     // effective_status=%5B%22ACTIVE%22%2C%22PAUSED%22%5D&fields=name%2Cobjective
                     $this->campaigns($item->ad_account, $item->auth->access_token, [
-                        'effective_status' => json_encode([
-                            'ACTIVE', 'PAUSED'
-                        ]),
                         'fields' => implode(',', [
-
                             'id',
                             'name',
                             'effective_status',

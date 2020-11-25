@@ -13,7 +13,7 @@ class SyncAdsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'sync:ads';
+    protected $signature = 'sync:ads {--account=} {--start_date=} {--end_date=}';
 
     /**
      * The console command description.
@@ -22,15 +22,6 @@ class SyncAdsCommand extends Command
      */
     protected $description = 'Sync Facebook Ads';
 
-    /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
 
     /**
      * Execute the console command.
@@ -39,8 +30,17 @@ class SyncAdsCommand extends Command
      */
     public function handle()
     {
+        $account = $this->option('account');
+        $start_date = $this->option('start_date');
+        $end_date = $this->option('end_date');
+
         do {
-            $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+            if (!empty($account)) {
+                $result = AdAccount::with('auth')->where('ad_account_int', $account)->paginate(20);
+            } else {
+                $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+            }
+
             $items = $result->items();
             if (count($items) <= 0) {
                 break;
@@ -49,10 +49,7 @@ class SyncAdsCommand extends Command
             foreach ($items as $item) {
                 if (!empty($item->ad_account) && !empty($item->auth) && !empty($item->auth->access_token)) {
                     // effective_status=%5B%22ACTIVE%22%2C%22PAUSED%22%5D&fields=name%2Cobjective
-                    $this->getAds($item->ad_account, $item->auth->access_token, [
-                        'effective_status' => json_encode([
-                            'ACTIVE', 'PAUSED'
-                        ]),
+                    $where = [
                         'fields' => implode(',', [
                             'id',
                             'name',
@@ -64,7 +61,18 @@ class SyncAdsCommand extends Command
                             'creative',
                             'tracking_specs'
                         ])
-                    ]);
+                    ];
+
+                    if (!empty($start_date) && !empty($end_date)) {
+                        $where['time_range'] = json_encode([
+                            'since' => $start_date,
+                            'until' => $end_date
+                        ]);
+                    } else {
+                        $where['date_preset'] = 'yesterday';
+                    }
+
+                    $this->getAds($item->ad_account, $item->auth->access_token, $where);
                 }
             }
 
