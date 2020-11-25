@@ -97,10 +97,13 @@ class AdInsightsAccountCommand extends Command
                     $overview = [
                         'spend' => $tmp_data['spend'] ?: 0,
                         'impression' => $tmp_data['impressions'] ?: 0,
-                        'click' => $tmp_data['inline_link_clicks'] ?: 0,
+                        'click' => $tmp_data['clicks'] ?: 0,
                         'ctr' => $tmp_data['inline_link_click_ctr'] ?: 0,
                         'cpm' => $tmp_data['cpm'] ?: 0,
                         'cpc' => $tmp_data['cost_per_inline_link_click'] ?: 0,
+                        'cpc_all' => $tmp_data['cpc'] ?: 0,
+                        'frequency'=>$tmp_data['frequency'] ?: 0,
+                        'reach'=>$tmp_data['reach'] ?: 0,
                         'roas' => 0,
                     ];
 
