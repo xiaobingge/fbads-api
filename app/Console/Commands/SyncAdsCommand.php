@@ -49,6 +49,7 @@ class SyncAdsCommand extends BaseCommand
                 if (!empty($item->ad_account) && !empty($item->auth) && !empty($item->auth->access_token)) {
                     // effective_status=%5B%22ACTIVE%22%2C%22PAUSED%22%5D&fields=name%2Cobjective
                     $where = [
+                        'is_completed' => true,
                         'fields' => implode(',', [
                             'id',
                             'name',

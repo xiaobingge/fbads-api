@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 
-class BaseCommand extends Command
+abstract class BaseCommand extends Command
 {
     /**
      * @var string $appId
