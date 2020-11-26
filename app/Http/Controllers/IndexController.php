@@ -20,7 +20,16 @@ class IndexController extends Controller
     {
         $result = AdAccount::with('auth')->paginate(10);
 
-        return view('list')->with('result', $result);
+        if (env('APP_DEBUG')) {
+            return view('list')->with('result', $result);
+        } else {
+            $html = '';
+            foreach ($result->items() as $account) {
+                $html .= $account->app_id . ' - ' . $account->id . '<br />';
+            }
+            $html .= '<a href="' . route('facebook_login') . '">添加新的账号授权<a/>';
+            return $html;
+        }
     }
 
 
