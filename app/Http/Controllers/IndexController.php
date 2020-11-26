@@ -445,11 +445,11 @@ class IndexController extends Controller
         $where = [
 
             //'date_preset' => 'last_30d',
-            'default_summary' => true, // 区间总计
+            'default_summary' => true,
             'time_increment' => 1,
             'time_range' => json_encode([
-                'since' => '2020-10-26',
-                'until' => '2020-11-24'
+                'since' => '2020-11-20',
+                'until' => '2020-11-25'
             ]),
 
             'level' => 'account',

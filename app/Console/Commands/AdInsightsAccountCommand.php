@@ -128,11 +128,6 @@ class AdInsightsAccountCommand extends BaseCommand
                             if ('purchase' == $val_action['action_type']) {
                                 $overview['purchase'] = $val_action['value'];
                             }
-
-                            // cpa
-                            if ('purchase' == $val_action['action_type']) {
-                                $overview['cpa'] = $val_action['value'];
-                            }
                         }
                     }
                     if (isset($tmp_data['action_values'])) {
@@ -142,6 +137,15 @@ class AdInsightsAccountCommand extends BaseCommand
                                 || 'omni_purchase' == $val_action['action_type']
                                 || 'offsite_conversion.fb_pixel_purchase' == $val_action['action_type']) {
                                 $overview['purchase_value'] = $val_action['value'];
+                            }
+                        }
+                    }
+
+                    if (isset($tmp_data['cost_per_action_type'])) {
+                        foreach ($tmp_data['cost_per_action_type'] as $val_action) {
+                            // cpa
+                            if ('purchase' == $val_action['action_type']) {
+                                $overview['cpa'] = $val_action['value'];
                             }
                         }
                     }
