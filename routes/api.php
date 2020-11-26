@@ -24,8 +24,8 @@ Route::post('register', 'ApiController@register');
 Route::get('click', 'ClickController@index');
 
 
-Route::any('adv/index','Admin/OverViewController@index');
-Route::get('adv/account','Admin/OverViewController@getAdAccount');
+Route::any('adv/index','Admin\OverViewController@index');
+Route::get('adv/account','Admin\OverViewController@getAdAccount');
 
 Route::group(['middleware' => 'auth.jwt'], function () {
     Route::get('logout', 'ApiController@logout');
