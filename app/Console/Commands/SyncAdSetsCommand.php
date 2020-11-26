@@ -20,7 +20,7 @@ class SyncAdSetsCommand extends BaseCommand
      * @var string
      */
     protected $description = 'Sync Facebook AdSets';
-    
+
     /**
      * Execute the console command.
      *

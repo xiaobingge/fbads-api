@@ -96,6 +96,7 @@ class AdInsightsAccountCommand extends BaseCommand
                         'spend' => $tmp_data['spend'] ?: 0,
                         'impression' => $tmp_data['impressions'] ?: 0,
                         'click' => $tmp_data['clicks'] ?: 0,
+                        'inline_link_clicks' => $tmp_data['inline_link_clicks'] ?: 0,
                         'ctr' => $tmp_data['inline_link_click_ctr'] ?: 0,
                         'cpm' => $tmp_data['cpm'] ?: 0,
                         'cpc' => $tmp_data['cost_per_inline_link_click'] ?: 0,

@@ -23,6 +23,7 @@ class AdOverview extends Model
     protected $fillable = [
         'date',
         'account_id',
-        'spend','impression','click','ctr','cpm','cpc','install','landing_page_view','add_cart','purchase','purchase_value','cpa','roas'
+        'spend','impression','click','inline_link_clicks','ctr','cpm','cpc',
+        'install','landing_page_view','add_cart','purchase','purchase_value','cpa','roas'
     ];
 }
