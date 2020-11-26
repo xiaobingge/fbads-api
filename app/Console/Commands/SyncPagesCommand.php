@@ -3,9 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\AdPage;
-use Illuminate\Console\Command;
 
-class SyncPagesCommand extends Command
+class SyncPagesCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
@@ -22,16 +21,6 @@ class SyncPagesCommand extends Command
     protected $description = 'Sync Facebook Pages';
 
     /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    /**
      * Execute the console command.
      *
      * @return mixed
@@ -39,7 +28,7 @@ class SyncPagesCommand extends Command
     public function handle()
     {
         do {
-            $result = AdPage::where('status', 0)->paginate(20);
+            $result = AdPage::where('status', 1)->paginate(20);
             $items = $result->items();
             if (count($items) <= 0) {
                 break;

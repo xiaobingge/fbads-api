@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\Redirect;
 
 class FacebookSdk extends Facebook
 {
+
+    /**
+     * 获取 AppId
+     *
+     * @return string
+     */
+    public function getAppId()
+    {
+        return $this->app->getId();
+    }
+
     /**
      * Generate an OAuth 2.0 authorization URL for authentication.
      *

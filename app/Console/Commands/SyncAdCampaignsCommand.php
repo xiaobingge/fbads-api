@@ -6,7 +6,7 @@ use App\Models\AdAccount;
 use App\Models\AdCampaign;
 use Illuminate\Console\Command;
 
-class SyncAdCampaignsCommand extends Command
+class SyncAdCampaignsCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
@@ -23,16 +23,6 @@ class SyncAdCampaignsCommand extends Command
     protected $description = 'Sync Facebook AdCampaigns';
 
     /**
-     * Create a new command instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    /**
      * Execute the console command.
      *
      * @return mixed
@@ -45,9 +35,9 @@ class SyncAdCampaignsCommand extends Command
 
         do {
             if (!empty($account)) {
-                $result = AdAccount::with('auth')->where('ad_account_int', $account)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('ad_account_int', $account)->paginate(20);
             } else {
-                $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('status', 0)->paginate(20);
             }
 
             $items = $result->items();
@@ -58,7 +48,7 @@ class SyncAdCampaignsCommand extends Command
             foreach ($items as $item) {
                 if (!empty($item->ad_account) && !empty($item->auth) && !empty($item->auth->access_token)) {
                     // effective_status=%5B%22ACTIVE%22%2C%22PAUSED%22%5D&fields=name%2Cobjective
-                    $this->campaigns($item->ad_account, $item->auth->access_token, [
+                    $where = [
                         'fields' => implode(',', [
                             'id',
                             'name',
@@ -74,20 +64,29 @@ class SyncAdCampaignsCommand extends Command
                             'bid_strategy',
                             'daily_budget',
                             'pacing_type',
-
                             'budget_remaining',
                             'buying_type',
                             'lifetime_budget',
                             'promoted_object',
                             'spend_cap',
                             'topline_id',
-
                             'created_time',
                             'end_time',
                             'start_time',
                             'updated_time',
                         ])
-                    ]);
+                    ];
+
+                    if (!empty($start_date) && !empty($end_date)) {
+                        $where['time_range'] = json_encode([
+                            'since' => $start_date,
+                            'until' => $end_date
+                        ]);
+                    } else {
+                        $where['date_preset'] = 'yesterday';
+                    }
+
+                    $this->campaigns($item->ad_account, $item->auth->access_token, $where);
                 }
             }
 

@@ -4,9 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\AdAd;
 use App\Models\AdInsightsAd;
-use Illuminate\Console\Command;
 
-class AdInsightsAdCommand extends Command
+class AdInsightsAdCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
@@ -32,9 +31,9 @@ class AdInsightsAdCommand extends Command
         $ad = $this->argument('ad');
         do {
             if (!empty($ad)) {
-                $result = AdAd::with('accountAndAuth')->where('ad_id', $ad)->paginate(20);
+                $result = AdAd::with('accountAndAuth')->where('app_id', $this->appId)->where('ad_id', $ad)->paginate(20);
             } else {
-                $result = AdAd::with('accountAndAuth')->where('switch_status', 0)->paginate(20);
+                $result = AdAd::with('accountAndAuth')->where('app_id', $this->appId)->where('switch_status', 0)->paginate(20);
             }
 
             $items = $result->items();

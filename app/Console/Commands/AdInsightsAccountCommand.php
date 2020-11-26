@@ -5,10 +5,8 @@ namespace App\Console\Commands;
 use App\Models\AdAccount;
 use App\Models\AdInsightsAccount;
 use App\Models\AdOverview;
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
-class AdInsightsAccountCommand extends Command
+class AdInsightsAccountCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
@@ -37,9 +35,9 @@ class AdInsightsAccountCommand extends Command
 
         do {
             if (!empty($account)) {
-                $result = AdAccount::with('auth')->where('ad_account_int', $account)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('ad_account_int', $account)->paginate(20);
             } else {
-                $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('status', 0)->paginate(20);
             }
 
             $items = $result->items();
@@ -90,7 +88,7 @@ class AdInsightsAccountCommand extends Command
 
             /* handle the result */
             $result = $response->getDecodedBody();
-            Log::info(print_r($result, 1));
+            \Log::info(print_r($result, 1));
             if (isset($result['data'])) {
                 foreach ($result['data'] as $tmp_data) {
 

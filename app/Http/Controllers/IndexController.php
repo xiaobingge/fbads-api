@@ -66,11 +66,15 @@ class IndexController extends Controller
 
                 $user = $response->getGraphUser();
 
+                $appId = \FacebookSdk::getAppId();
+
                 // $adaccounts = [];
                 foreach($user['adaccounts'] as $adaccount) {
                     // echo $adaccount['account_id'] . '-' . $adaccount['id'] . '<br />';
                     \App\Models\AdAccount::firstOrCreate(
                         [
+                            'type' => 1,
+                            'app_id' => $appId,
                             'user_id' => $user['id'],
                             'ad_account_int' =>$adaccount['account_id'],
                             'ad_account' => $adaccount['id']
@@ -86,7 +90,8 @@ class IndexController extends Controller
                             [
                                 'access_token' => $ad_page['access_token'],
                                 'name' => $ad_page['name'],
-                                'tasks' => $ad_page['tasks']
+                                'tasks' => $ad_page['tasks'],
+                                'status' => 1
                             ]
                         );
                     }
@@ -98,17 +103,18 @@ class IndexController extends Controller
                 }
 
                 \App\Models\AdAuth::updateOrCreate(
-                    ['type' => 1, 'user_id' => $user['id']],
+                    ['type' => 1, 'app_id' => $appId, 'user_id' => $user['id']],
                     [
                         'name' => $user['name'],
                         'email' => $user['email'],
                         'scope' => implode(',', $permissions),
                         'avatar' => isset($user['picture']['data']['url']) ? $user['picture']['data']['url'] : '',
-                        'access_token' => $accessToken]
+                        'access_token' => $accessToken
+                    ]
                 );
 
-                // return redirect(route('facebook_list'));
-                echo '<a href="' . route('facebook_list') . '">授权列表</a>';
+                return redirect(route('facebook_list'));
+                // echo '<a href="' . route('facebook_list') . '">授权列表</a>';
             } catch(FacebookResponseException $e) {
                 echo 'Graph returned an error: ' . $e->getMessage();
                 exit;

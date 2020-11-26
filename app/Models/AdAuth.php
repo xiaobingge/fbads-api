@@ -20,5 +20,5 @@ class AdAuth extends Model
      */
     public $timestamps = false;
 
-    protected $fillable = ['type', 'user_id', 'name', 'avatar', 'email', 'scope', 'access_token', 'expire_in'];
+    protected $fillable = ['type', 'app_id', 'user_id', 'name', 'avatar', 'email', 'scope', 'access_token', 'expire_in'];
 }

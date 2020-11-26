@@ -3,9 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\AdSet;
-use Illuminate\Console\Command;
 
-class AdInsightsAdSetCommand extends Command
+class AdInsightsAdSetCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
@@ -31,9 +30,9 @@ class AdInsightsAdSetCommand extends Command
         $adset = $this->argument('adset');
         do {
             if (!empty($adset)) {
-                $result = AdSet::with('accountAndAuth')->where('adset_id', $adset)->paginate(20);
+                $result = AdSet::with('accountAndAuth')->where('app_id', $this->appId)->where('adset_id', $adset)->paginate(20);
             } else {
-                $result = AdSet::with('accountAndAuth')->where('switch_status', 0)->paginate(20);
+                $result = AdSet::with('accountAndAuth')->where('app_id', $this->appId)->where('switch_status', 0)->paginate(20);
             }
 
             $items = $result->items();

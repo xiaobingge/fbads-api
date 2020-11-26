@@ -3,9 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Models\AdCampaign;
-use Illuminate\Console\Command;
 
-class AdInsightsCampaignCommand extends Command
+class AdInsightsCampaignCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
@@ -31,9 +30,9 @@ class AdInsightsCampaignCommand extends Command
         $campaign = $this->argument('campaign');
         do {
             if (!empty($campaign)) {
-                $result = AdCampaign::with('accountAndAuth')->where('campaign_id', $campaign)->paginate(20);
+                $result = AdCampaign::with('accountAndAuth')->where('app_id', $this->appId)->where('campaign_id', $campaign)->paginate(20);
             } else {
-                $result = AdCampaign::with('accountAndAuth')->where('switch_status', 0)->paginate(20);
+                $result = AdCampaign::with('accountAndAuth')->where('app_id', $this->appId)->where('switch_status', 0)->paginate(20);
             }
 
             $items = $result->items();

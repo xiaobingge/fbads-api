@@ -4,9 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\AdAccount;
 use App\Models\AdAd;
-use Illuminate\Console\Command;
 
-class SyncAdsCommand extends Command
+class SyncAdsCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
@@ -36,9 +35,9 @@ class SyncAdsCommand extends Command
 
         do {
             if (!empty($account)) {
-                $result = AdAccount::with('auth')->where('ad_account_int', $account)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('ad_account_int', $account)->paginate(20);
             } else {
-                $result = AdAccount::with('auth')->where('status', 0)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('status', 0)->paginate(20);
             }
 
             $items = $result->items();
