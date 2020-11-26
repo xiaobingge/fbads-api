@@ -32,13 +32,14 @@ class SyncAdSetsCommand extends BaseCommand
         $start_date = $this->option('start_date');
         $end_date = $this->option('end_date');
 
+        $page = 1;
         do {
             if (!empty($account)) {
-                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('ad_account_int', $account)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('ad_account_int', $account)->paginate(20, ['*'], 'page', $page);
             } else {
-                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('status', 0)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('status', 0)->paginate(20, ['*'], 'page', $page);
             }
-
+            $page = $result->currentPage() + 1;
             $items = $result->items();
             if (count($items) <= 0) {
                 break;
@@ -49,6 +50,7 @@ class SyncAdSetsCommand extends BaseCommand
                     // effective_status=%5B%22ACTIVE%22%2C%22PAUSED%22%5D&fields=name%2Cobjective
 
                     $where = [
+                        'is_completed' => true,
                         'fields' => implode(',', [
                             'id',
                             'name',
@@ -104,31 +106,35 @@ class SyncAdSetsCommand extends BaseCommand
             $result = $response->getDecodedBody();
             if (isset($result['data'])) {
                 foreach ($result['data'] as $adset) {
+
+                    $tmpData = [
+                        'effective_status' => $adset['effective_status'],
+                        'status' => $adset['status'],
+                        'lifetime_budget' => $adset['lifetime_budget'],
+                        'daily_budget' => $adset['daily_budget'] ?: 0,
+                        'bid_amount' => $adset['bid_amount'],
+                        'billing_event' => $adset['billing_event'],
+                        'name' => $adset['name'],
+                        'campaign_id' => $adset['campaign_id'],
+                        'optimization_goal' => $adset['optimization_goal'],
+                        'targeting' => isset($adset['targeting']) ? json_encode($adset['targeting']) : '',
+                        'promoted_object' => isset($adset['promoted_object']) ? json_encode($adset['promoted_object']) : '',
+                        'attribution_spec' => isset($adset['attribution_spec']) ? json_encode($adset['attribution_spec']) : '',
+                        'destination_type' => isset($adset['destination_type']) ? $adset['destination_type'] : '',
+                    ];
+
+                    isset($adset['created_time']) && $tmpData['created_time'] = date('Y-m-d H:i:s', strtotime($adset['created_time']));
+                    isset($adset['end_time']) && $tmpData['end_time'] = date('Y-m-d H:i:s', strtotime($adset['end_time']));
+                    isset($adset['start_time']) && $tmpData['start_time'] = date('Y-m-d H:i:s', strtotime($adset['start_time']));
+                    isset($adset['updated_time']) && $tmpData['updated_time'] = date('Y-m-d H:i:s', strtotime($adset['updated_time']));
+
+
                     AdSet::updateOrCreate(
                         [
                             'adset_id' => $adset['id'],
                             'account_id'  => $adset['account_id'],
                         ],
-                        [
-                            'effective_status' => $adset['effective_status'],
-                            'status' => $adset['status'],
-                            'lifetime_budget' => $adset['lifetime_budget'],
-                            'daily_budget' => $adset['daily_budget'],
-                            'bid_amount' => $adset['bid_amount'],
-                            'billing_event' => $adset['billing_event'],
-                            'name' => $adset['name'],
-                            'campaign_id' => $adset['campaign_id'],
-                            'optimization_goal' => $adset['optimization_goal'],
-                            'targeting' => isset($adset['targeting']) ? json_encode($adset['targeting']) : '',
-                            'promoted_object' => isset($adset['promoted_object']) ? json_encode($adset['promoted_object']) : '',
-                            'attribution_spec' => isset($adset['attribution_spec']) ? json_encode($adset['attribution_spec']) : '',
-                            'destination_type' => isset($adset['destination_type']) ? $adset['destination_type'] : '',
-
-                            'created_time' => date('Y-m-d H:i:s', strtotime($adset['created_time'])),
-                            'end_time' => date('Y-m-d H:i:s', strtotime($adset['end_time'])),
-                            'start_time' => date('Y-m-d H:i:s', strtotime($adset['start_time'])),
-                            'updated_time' => date('Y-m-d H:i:s', strtotime($adset['updated_time'])),
-                        ]
+                        $tmpData
                     );
                 }
             }

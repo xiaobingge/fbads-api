@@ -33,13 +33,14 @@ class SyncAdsCommand extends BaseCommand
         $start_date = $this->option('start_date');
         $end_date = $this->option('end_date');
 
+        $page = 1;
         do {
             if (!empty($account)) {
-                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('ad_account_int', $account)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('ad_account_int', $account)->paginate(20, ['*'], 'page', $page);
             } else {
-                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('status', 0)->paginate(20);
+                $result = AdAccount::with('auth')->where('app_id', $this->appId)->where('status', 0)->paginate(20, ['*'], 'page', $page);
             }
-
+            $page = $result->currentPage() + 1;
             $items = $result->items();
             if (count($items) <= 0) {
                 break;

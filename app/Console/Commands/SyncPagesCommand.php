@@ -27,8 +27,12 @@ class SyncPagesCommand extends BaseCommand
      */
     public function handle()
     {
+        $page = 1;
+
         do {
-            $result = AdPage::where('status', 1)->paginate(20);
+            $result = AdPage::where('status', 1)->paginate(20, ['*'], 'page', $page);
+
+            $page = $result->currentPage() + 1;
             $items = $result->items();
             if (count($items) <= 0) {
                 break;
