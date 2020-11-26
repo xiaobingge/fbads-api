@@ -70,7 +70,7 @@ class SyncAdsCommand extends BaseCommand
                             'until' => $end_date
                         ]);
                     } else {
-                        $where['date_preset'] = 'yesterday';
+                        $where['date_preset'] = 'last_3d';
                     }
 
                     $this->getAds($item->ad_account, $item->auth->access_token, $where);

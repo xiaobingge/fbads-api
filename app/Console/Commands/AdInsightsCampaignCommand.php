@@ -63,7 +63,7 @@ class AdInsightsCampaignCommand extends BaseCommand
                             'until' => $end_date
                         ]);
                     } else {
-                        $where['date_preset'] = 'yesterday';
+                        $where['date_preset'] = 'today';
                     }
 
                     $this->adCampaignInsights($item->campaign_id, $item->accountAndAuth->auth->access_token, $where);

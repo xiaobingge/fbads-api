@@ -65,7 +65,7 @@ class AdInsightsAdSetCommand extends BaseCommand
                             'until' => $end_date
                         ]);
                     } else {
-                        $where['date_preset'] = 'yesterday';
+                        $where['date_preset'] = 'today';
                     }
 
                     $this->adAdSetInsights($item->adset_id, $item->accountAndAuth->auth->access_token, $where);

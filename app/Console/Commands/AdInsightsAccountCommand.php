@@ -65,7 +65,7 @@ class AdInsightsAccountCommand extends BaseCommand
                             'until' => $end_date
                         ]);
                     } else {
-                        $where['date_preset'] = 'yesterday';
+                        $where['date_preset'] = 'today';
                     }
 
                     $this->adAccountInsights($item->ad_account, $item->auth->access_token, $where);
@@ -90,7 +90,6 @@ class AdInsightsAccountCommand extends BaseCommand
 
             /* handle the result */
             $result = $response->getDecodedBody();
-            \Log::info(print_r($result, 1));
             if (isset($result['data'])) {
                 foreach ($result['data'] as $tmp_data) {
 

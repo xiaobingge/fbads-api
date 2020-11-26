@@ -81,7 +81,7 @@ class SyncAdSetsCommand extends BaseCommand
                             'until' => $end_date
                         ]);
                     } else {
-                        $where['date_preset'] = 'yesterday';
+                        $where['date_preset'] = 'last_3d';
                     }
 
                     $this->getAdSets($item->ad_account, $item->auth->access_token, $where);
