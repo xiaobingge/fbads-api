@@ -52,11 +52,14 @@ class ClickController extends Controller
 				return ['code'=>1000, 'msg'=>'获取成功', 'data'=>['image_info'=>'', 'width'=>0, 'height'=>0]];
 			}
 			$baseImageInfo = base64_encode($data);
-			list($width, $height) = getimagesize($imageUrl);
+			/*list($width, $height) = getimagesize($imageUrl);
 
 			$sizeArr = getimagesize('data://image/jpeg;base64,'. $baseImageInfo);
 			$width = $sizeArr[0];
-			$height = $sizeArr[1];
+			$height = $sizeArr[1];*/
+
+			$width = 600;
+			$height = 800;
 			return ['code'=>1000, 'msg'=>'获取成功', 'data'=>['image_info'=>$baseImageInfo, 'width'=>$width, 'height'=>$height]];
 		}
 	}
