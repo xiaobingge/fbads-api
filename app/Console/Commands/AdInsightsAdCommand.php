@@ -12,7 +12,7 @@ class AdInsightsAdCommand extends BaseCommand
      *
      * @var string
      */
-    protected $signature = 'sync:ad-insights {--ad=} {--start_date=} {--end_date=}';
+    protected $signature = 'sync:ad-insights {--ad=} {--start_date=} {--end_date=} {--yesterday}';
 
     /**
      * The console command description.
@@ -31,6 +31,7 @@ class AdInsightsAdCommand extends BaseCommand
         $ad = $this->option('ad');
         $start_date = $this->option('start_date');
         $end_date = $this->option('end_date');
+        $yesterday = $this->option('yesterday');
 
         $page = 1;
         do {
@@ -61,8 +62,10 @@ class AdInsightsAdCommand extends BaseCommand
                             'since' => $start_date,
                             'until' => $end_date
                         ]);
+                    } elseif (!empty($yesterday)) {
+                        $where['date_preset'] = 'yesterday';
                     } else {
-                        $where['date_preset'] = 'last_3d';
+                        $where['date_preset'] = 'today';
                     }
 
                     $this->adAdInsights($item->ad_id, $item->accountAndAuth->auth->access_token, $where);

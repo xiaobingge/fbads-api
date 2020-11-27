@@ -12,7 +12,7 @@ class SyncAdSetsCommand extends BaseCommand
      *
      * @var string
      */
-    protected $signature = 'sync:adsets {--account=} {--start_date=} {--end_date=}';
+    protected $signature = 'sync:adsets {--account=} {--start_date=} {--end_date=} {--yesterday}';
 
     /**
      * The console command description.
@@ -31,6 +31,7 @@ class SyncAdSetsCommand extends BaseCommand
         $account = $this->option('account');
         $start_date = $this->option('start_date');
         $end_date = $this->option('end_date');
+        $yesterday = $this->option('yesterday');
 
         $page = 1;
         do {
@@ -80,8 +81,10 @@ class SyncAdSetsCommand extends BaseCommand
                             'since' => $start_date,
                             'until' => $end_date
                         ]);
+                    } elseif (!empty($yesterday)) {
+                        $where['date_preset'] = 'yesterday';
                     } else {
-                        $where['date_preset'] = 'last_3d';
+                        $where['date_preset'] = 'today';
                     }
 
                     $this->getAdSets($item->ad_account, $item->auth->access_token, $where);

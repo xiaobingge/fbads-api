@@ -12,7 +12,7 @@ class AdInsightsAdSetCommand extends BaseCommand
      *
      * @var string
      */
-    protected $signature = 'sync:ad-set-insights {--adset=} {--start_date=} {--end_date=}';
+    protected $signature = 'sync:ad-set-insights {--adset=} {--start_date=} {--end_date=} {--yesterday}';
 
     /**
      * The console command description.
@@ -31,6 +31,7 @@ class AdInsightsAdSetCommand extends BaseCommand
         $adset = $this->option('adset');
         $start_date = $this->option('start_date');
         $end_date = $this->option('end_date');
+        $yesterday = $this->option('yesterday');
 
         $page = 1;
         do {
@@ -64,8 +65,10 @@ class AdInsightsAdSetCommand extends BaseCommand
                             'since' => $start_date,
                             'until' => $end_date
                         ]);
+                    } elseif (!empty($yesterday)) {
+                        $where['date_preset'] = 'yesterday';
                     } else {
-                        $where['date_preset'] = 'last_3d';
+                        $where['date_preset'] = 'today';
                     }
 
                     $this->adAdSetInsights($item->adset_id, $item->accountAndAuth->auth->access_token, $where);
