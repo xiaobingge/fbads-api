@@ -42,6 +42,40 @@ Route::group(['middleware' => ['web', 'wechat.oauth']], function () {
     Route::get('wechat/auth', 'WeChatController@authLogin');
 });
 
+Route::any('/facebook/login', 'IndexController@login')->name('facebook_login');
+Route::any('/facebook/list', 'IndexController@list')->name('facebook_list');
+
+// 取消授权回调网址
+Route::any('/facebook/leave', 'IndexController@leave')->name('facebook_leave');
+
+// 数据删除请求网址
+Route::any('/facebook/remove', 'IndexController@remove')->name('facebook_remove');
+
+Route::any('/facebook/deletion', 'IndexController@deletion')->name('facebook_deletion');
+
+if (env('APP_DEBUG')) {
+    Route::any('/facebook/test151', 'IndexController@test151');
+    Route::any('/facebook/me', 'IndexController@me');
+    Route::any('/facebook/accounts', 'IndexController@accounts');
+
+    Route::any('/facebook/get_customaudiences', 'IndexController@get_customaudiences');
+    Route::any('/facebook/create_customaudiences', 'IndexController@create_customaudiences');
+
+
+    Route::any('/facebook/campaigns', 'IndexController@campaigns');
+    Route::any('/facebook/create_campaign', 'IndexController@create_campaign');
+
+    Route::any('/facebook/adsets', 'IndexController@adsets');
+    Route::any('/facebook/create_adset', 'IndexController@create_adset');
+
+    Route::any('/facebook/insights_account', 'IndexController@insights_account');
+    Route::any('/facebook/insights_campaign', 'IndexController@insights_campaign');
+
+
+    Route::any('/facebook/ads', 'IndexController@ads');
+    Route::any('/facebook/create_ad', 'IndexController@create_ad');
+    Route::any('/facebook/adspixels', 'IndexController@adspixels');
+}
 
 //后台管理系统路由
 Route::any('admin/loginCenter', 'Admin\LoginController@login');
