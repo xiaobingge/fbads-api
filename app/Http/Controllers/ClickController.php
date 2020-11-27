@@ -39,7 +39,7 @@ class ClickController extends Controller
 			curl_setopt($ch, CURLOPT_BINARYTRANSFER, 1);
 			curl_setopt($ch, CURLOPT_HEADER, 0);
 			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+			curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE );
 			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, FALSE );
 			$data = curl_exec($ch);
