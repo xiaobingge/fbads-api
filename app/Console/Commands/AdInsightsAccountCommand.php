@@ -65,7 +65,7 @@ class AdInsightsAccountCommand extends BaseCommand
                             'until' => $end_date
                         ]);
                     } else {
-                        $where['date_preset'] = 'today';
+                        $where['date_preset'] = 'last_3d';
                     }
 
                     $this->adAccountInsights($item->ad_account, $item->auth->access_token, $where);
