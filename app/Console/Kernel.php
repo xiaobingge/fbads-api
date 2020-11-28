@@ -43,15 +43,15 @@ class Kernel extends ConsoleKernel
         $schedule->command('sync:ad-insights', ['--yesterday'])->dailyAt('05:57');
 
         // 今天的
-        $schedule->command('sync:adcampaigns')->cron('5 1 5,8,11,14,18,23 * *')->withoutOverlapping();
-        $schedule->command('sync:adsets')->cron('5 11 5,8,11,14,18,23 * *')->withoutOverlapping();
-        $schedule->command('sync:ads')->cron('5 21 5,8,11,14,18,23 * *')->withoutOverlapping();
-        $schedule->command('sync:pages')->hourlyAt(17)->withoutOverlapping();
+        $schedule->command('sync:adcampaigns')->hourlyAt(11)->between('8:00', '23:00')->withoutOverlapping();
+        $schedule->command('sync:adsets')->hourlyAt(11)->between('8:00', '23:00')->withoutOverlapping();
+        $schedule->command('sync:ads')->hourlyAt(11)->between('8:00', '23:00')->withoutOverlapping();
+        $schedule->command('sync:pages')->hourlyAt(17)->between('8:00', '23:00')->withoutOverlapping();
 
-        $schedule->command('sync:ad-insights-account')->cron('5 31 5,8,11,14,18,23 * *')->withoutOverlapping();
-        $schedule->command('sync:ad-campaign-insights')->cron('5 31 5,8,11,14,18,23 * *')->withoutOverlapping();
-        $schedule->command('sync:ad-set-insights')->cron('5 35 5,8,11,14,18,23 * *')->withoutOverlapping();
-        $schedule->command('sync:ad-insights')->cron('5 39 5,8,11,14,18,23 * *')->withoutOverlapping();
+        $schedule->command('sync:ad-insights-account')->hourlyAt(21)->between('8:00', '23:00')->withoutOverlapping();
+        $schedule->command('sync:ad-campaign-insights')->hourlyAt(31)->between('8:00', '23:00')->withoutOverlapping();
+        $schedule->command('sync:ad-set-insights')->hourlyAt(35)->between('8:00', '23:00')->withoutOverlapping();
+        $schedule->command('sync:ad-insights')->hourlyAt(41)->between('8:00', '23:00')->withoutOverlapping();
     }
 
     /**
