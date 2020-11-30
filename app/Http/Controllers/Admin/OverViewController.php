@@ -46,7 +46,7 @@ class OverViewController extends Controller{
         $data['cpm'] = $data['impression'] > 0 ?  round($data['spend']*1000/$data['impression'],2) : 0;
         $data['cpa'] = $data['purchase'] > 0 ?  round($data['spend']/$data['purchase'],2) : 0;
         $data['roas'] =$data['purchase_value'] > 0 ?  round($data['spend']/$data['purchase_value'],2) : 0;
-        $accounts = AdAccount::get();
+        $accounts = AdAccount::where(['status'=>0])->get();
         return success(['list'=>$list,'total'=>$data,'accounts'=>$accounts]);
 
     }
