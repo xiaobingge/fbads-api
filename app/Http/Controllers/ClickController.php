@@ -51,6 +51,11 @@ class ClickController extends Controller
 			if($httpCode!='200' || $httpSizeDownload<1){
 				return ['code'=>1000, 'msg'=>'获取成功', 'data'=>['image_info'=>'', 'width'=>0, 'height'=>0]];
 			}
+
+			if(stripos($data, 'Check the web address') !== false) {
+				return ['code'=>1001, 'msg'=>'图片地址已经失效'];
+			}
+
 			$baseImageInfo = base64_encode($data);
 			/*list($width, $height) = getimagesize($imageUrl);
 
