@@ -16,7 +16,7 @@ class OverViewController extends Controller{
         $accounts = $request->input('accounts');
         if(empty($start) || empty($end) )
             return error(1001,"参数不能空");
-        $obj = AdOverview::where('date','>=',$start)->where('date' , '<=' ,$end);
+        $obj = AdOverview::where('date','>=',$start)->where('date' , '<=' ,$end)->whereNotIn('account_id',[289058739138071,415921722753878]);
         if(!empty($accounts))
             $obj->where('account_id','=',$accounts);
         $list =$obj->select('date',DB::raw('SUM(spend) as spend'),DB::raw('SUM(impression) as impression') , DB::raw('SUM(inline_link_clicks) as inline_link_clicks') , DB::raw('SUM(click) as click') , DB::raw('SUM(install) as install') ,
@@ -39,7 +39,7 @@ class OverViewController extends Controller{
             $list[$key]['cpc'] = $value['inline_link_clicks'] > 0 ? round($value['spend']/$value['inline_link_clicks'],2) : 0;
             $list[$key]['cpm'] = $value['impression'] > 0 ?  round($value['spend']*1000/$value['impression'],2) : 0;
             $list[$key]['cpa'] = $value['purchase'] > 0 ?  round($value['spend']/$value['purchase'],2) : 0;
-            $list[$key]['roas'] =$value['purchase_value'] > 0 ? round($value['spend']/$value['purchase_value'],2) : 0;
+            $list[$key]['roas'] =$value['purchase_value'] > 0 ? round($value['purchase_value']/$value['spend'],2) : 0;
         }
         $data['ctr'] = $data['impression'] > 0 ? round($data['inline_link_clicks']*100/$data['impression'],2) : 0 ;
         $data['cpc'] = $data['click'] > 0 ?  round($data['spend']/$data['inline_link_clicks'],2) : 0;
@@ -53,7 +53,7 @@ class OverViewController extends Controller{
 
     public function getAdAccount(Request $request){
         $user_id = $request->input('user_id');
-        $account = AdAccount::where(['user_id'=>$user_id])->get();
+        $account = AdAccount::where(['user_id'=>$user_id,'status'=>0])->get();
         return success($account);
     }
 
