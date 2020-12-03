@@ -33,6 +33,14 @@ Route::group(['middleware' => 'auth.jwt'], function () {
 
 });
 
+//需要验证用户登录的路由
+Route::group(['middleware' => ['cors','multiauth:api']], function () {
+    Route::get('/facebook/user_list', 'Admin\FacebookController@user_list');
+    Route::get('/facebook/adaccounts', 'Admin\FacebookController@adaccounts');
+    Route::get('/facebook/pixel', 'Admin\FacebookController@adspixels');
+    Route::get('/facebook/page', 'Admin\FacebookController@facebookPage');
+});
+
 
 Route::group([], function () {
 	Route::get('getShopifyCollectCount', 'FaceApiController@getShopifyCollectCount');

@@ -11,7 +11,7 @@ use Spatie\Permission\Models\Permission;
 
 /**
  * @OA\Info(
- *     version="1.0",
+ *     version="1.0",s
  *     title="dbger 项目接口文档",
  *     @OA\Contact(
  *         name="小兵哥",
