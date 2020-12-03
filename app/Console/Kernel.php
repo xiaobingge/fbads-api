@@ -34,13 +34,13 @@ class Kernel extends ConsoleKernel
         // $schedule->command('inspire')
         //          ->hourly();
         // 昨天的
-        $schedule->command('sync:adcampaigns', ['--yesterday'])->dailyAt('05:17');
-        $schedule->command('sync:adsets', ['--yesterday'])->dailyAt('05:17');
-        $schedule->command('sync:ads', ['--yesterday'])->dailyAt('05:17');
-        $schedule->command('sync:ad-insights-account', ['--yesterday'])->dailyAt('05:57');
-        $schedule->command('sync:ad-campaign-insights', ['--yesterday'])->dailyAt('05:57');
-        $schedule->command('sync:ad-set-insights', ['--yesterday'])->dailyAt('05:57');
-        $schedule->command('sync:ad-insights', ['--yesterday'])->dailyAt('05:57');
+        $schedule->command('sync:adcampaigns', ['--yesterday'])->dailyAt('00:17');
+        $schedule->command('sync:adsets', ['--yesterday'])->dailyAt('00:17');
+        $schedule->command('sync:ads', ['--yesterday'])->dailyAt('00:17');
+        $schedule->command('sync:ad-insights-account', ['--yesterday'])->dailyAt('00:57');
+        $schedule->command('sync:ad-campaign-insights', ['--yesterday'])->dailyAt('00:57');
+        $schedule->command('sync:ad-set-insights', ['--yesterday'])->dailyAt('00:57');
+        $schedule->command('sync:ad-insights', ['--yesterday'])->dailyAt('00:57');
 
         // 今天的
         $schedule->command('sync:adcampaigns')->hourlyAt(11)->between('8:00', '23:00')->withoutOverlapping();
