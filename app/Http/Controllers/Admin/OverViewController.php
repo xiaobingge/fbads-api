@@ -16,9 +16,15 @@ class OverViewController extends Controller{
         $accounts = $request->input('accounts');
         if(empty($start) || empty($end) )
             return error(1001,"参数不能空");
-        $obj = AdOverview::where('date','>=',$start)->where('date' , '<=' ,$end)->whereNotIn('account_id',[289058739138071,415921722753878]);
-        if(!empty($accounts))
-            $obj->where('account_id','=',$accounts);
+        $obj = AdOverview::where('date','>=',$start)->where('date' , '<=' ,$end);
+        if(!empty($accounts)){
+            if(!is_array($accounts))
+                $accounts = [$accounts];
+            $obj->whereIn('account_id',$accounts);
+        }else{
+            $obj->whereNotIn('account_id',[289058739138071,415921722753878]);
+        }
+
         $list =$obj->select('date',DB::raw('SUM(spend) as spend'),DB::raw('SUM(impression) as impression') , DB::raw('SUM(inline_link_clicks) as inline_link_clicks') , DB::raw('SUM(click) as click') , DB::raw('SUM(install) as install') ,
                 DB::raw('SUM(landing_page_view) as landing_page_view'),DB::raw('SUM(add_cart) as add_cart'),DB::raw('SUM(purchase) as purchase'),DB::raw('SUM(purchase_value) as purchase_value'))
             ->groupBy('date')
