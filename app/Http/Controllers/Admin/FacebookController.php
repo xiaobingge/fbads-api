@@ -50,6 +50,61 @@ class FacebookController extends Controller
         ]);
     }
 
+    public function refresh_account(Request $request)
+    {
+        $user_id = $request->input('user_id');
+
+        $info = AdAuth::where('user_id', $user_id)->first();
+        if (empty($info) || empty($info->access_token)) {
+            response()->json([
+                'code' => 1001,
+                'msg'  => '用户不存在'
+            ]);
+        }
+        $accessToken = $info->access_token;
+
+        // Returns a `Facebook\Response` object
+        $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions,picture', $accessToken);
+
+        $user = $response->getGraphUser();
+
+        $appId = \FacebookSdk::getAppId();
+
+        // $adaccounts = [];
+        foreach($user['adaccounts'] as $adaccount) {
+            AdAccount::firstOrCreate(
+                [
+                    'type' => 1,
+                    'app_id' => $appId,
+                    'user_id' => $user['id'],
+                    'ad_account_int' =>$adaccount['account_id'],
+                    'ad_account' => $adaccount['id']
+                ]
+            );
+        }
+
+        // page
+        if (isset($user['accounts']) && count($user['accounts']) > 0) {
+            foreach ($user['accounts'] as $ad_page) {
+                AdPage::updateOrCreate(
+                    ['page_id' => $ad_page['id'], 'user_id' => $user['id']],
+                    [
+                        'access_token' => $ad_page['access_token'],
+                        'name' => $ad_page['name'],
+                        'tasks' => $ad_page['tasks'],
+                        'status' => 1
+                    ]
+                );
+            }
+        }
+
+        return response()->json([
+            'code' => 1000,
+            'msg'  => 'success'
+        ]);
+    }
+
+
     public function adaccounts()
     {
         $result = AdAccount::paginate(10, ['name']);
