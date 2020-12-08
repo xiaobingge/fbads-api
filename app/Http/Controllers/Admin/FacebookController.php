@@ -107,7 +107,7 @@ class FacebookController extends Controller
 
     public function adaccounts()
     {
-        $result = AdAccount::paginate(10, ['name']);
+        $result = AdAccount::paginate(10, ['user_id', 'ad_account','ad_account_int','name']);
 
         return response()->json([
             'code' => 1000,
