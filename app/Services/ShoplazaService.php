@@ -66,6 +66,7 @@ class ShoplazaService
 		//'https://e9913e871becda6b8f080b1d456bf235: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@lumylus.myshopify.com',
 		202 => 'https://646603cddc739f3e7ab6e09cac63645f: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@ifashionfull.myshopify.com',
 		//'https://97e201a4024c6af6761924c02e344392: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@zalikera.myshopify.com'
+		204 => 'https://cb2c08074f39a816e264599ea500f013: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@hercoco.myshopify.com'
 	];
 
 	protected $logPath = 'facebook/faceapi/';
