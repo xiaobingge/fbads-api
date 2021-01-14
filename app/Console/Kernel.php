@@ -21,6 +21,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SyncAdsCommand::class,
         \App\Console\Commands\SyncAdSetsCommand::class,
         \App\Console\Commands\SyncPagesCommand::class,
+        \App\Console\Commands\FaceGoodCommand::class,
     ];
 
     /**
