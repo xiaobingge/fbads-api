@@ -55,6 +55,9 @@ class Kernel extends ConsoleKernel
         $schedule->command('sync:ad-insights')->hourlyAt(41)->between('8:00', '23:00')->withoutOverlapping();
         //采集商品
         $schedule->command('faceGood:cai')->everyMinute()->withoutOverlapping();
+
+        //推送商品
+        $schedule->command('push:goods', [202])->everyFiveMinutes()->withoutOverlapping();
     }
 
     /**
