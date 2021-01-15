@@ -21,6 +21,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SyncAdsCommand::class,
         \App\Console\Commands\SyncAdSetsCommand::class,
         \App\Console\Commands\SyncPagesCommand::class,
+        \App\Console\Commands\FaceGoodCommand::class,
     ];
 
     /**
@@ -52,6 +53,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('sync:ad-campaign-insights')->hourlyAt(31)->between('8:00', '23:00')->withoutOverlapping();
         $schedule->command('sync:ad-set-insights')->hourlyAt(35)->between('8:00', '23:00')->withoutOverlapping();
         $schedule->command('sync:ad-insights')->hourlyAt(41)->between('8:00', '23:00')->withoutOverlapping();
+        //采集商品
+        $schedule->command('faceGood:cai')->everyMinute()->withoutOverlapping();
     }
 
     /**

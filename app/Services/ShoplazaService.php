@@ -1,5 +1,12 @@
 <?php
 namespace App\Services;
+use Illuminate\Support\Facades\Redis;
+use App\Models\FaceGoodsRs;
+use App\Models\FaceGoods;
+use App\Models\FaceGoodsImage;
+use App\Models\FaceGoodsOption;
+use App\Models\FaceGoodsSku;
+
 /**
  * Class ShoplazaLogic Shoplaza
  */
@@ -70,19 +77,33 @@ class ShoplazaService
 		205 => 'https://bba444d6b2290ea445466b8715963846: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@shecherry.myshopify.com'
 	];
 
-	protected $logPath = 'facebook/faceapi/';
-	protected $logFileName;
+    protected $logPath = 'facebook/faceapi/';
+    protected $logFileName;
 
-	public function __construct() {
-		$this->logFileName = strtolower(sprintf('%s/%s-%s.log', $this->logPath, 'faceapi', date('Y-m-d')));
-	}
+    public function __construct()
+    {
+        $this->logFileName = strtolower(sprintf('%s/%s-%s.log', $this->logPath, 'faceapi', date('Y-m-d')));
+    }
 
-	private static $_instance = array();
+    // shoplaza http clients
+    private static $_instance = array();
+
+    // shopify http clients
+    private static $_http_instance = array();
 
     public function getUrl($curr = 0)
     {
         return isset($this->urlPre[$curr]) ? $this->urlPre[$curr] : '';
     }
+
+    public function getShopifyUrl($shop_key)
+    {
+        if (empty($shop_key)) {
+            return '';
+        }
+        return isset($this->_shopifyBaseUrls[$shop_key]) ? $this->_shopifyBaseUrls[$shop_key] : '';
+    }
+
 
     /**
      * @param int $key
@@ -105,6 +126,21 @@ class ShoplazaService
         }
 
         return static::$_instance[$index];
+    }
+
+    /**
+     * @param int $key
+     * @return \GuzzleHttp\Client
+     */
+    private function getShopifyClient($index = 0)
+    {
+        if (!isset(static::$_http_instance[$index]) || !(static::$_http_instance[$index] instanceof \GuzzleHttp\Client)) {
+            static::$_http_instance[$index] = new \GuzzleHttp\Client([
+                'timeout'  => 30,
+            ]);
+        }
+
+        return static::$_http_instance[$index];
     }
 
     /**
@@ -485,6 +521,176 @@ class ShoplazaService
 			mLog($this->logFileName, $e->getMessage());
 		}
         return false;
+    }
+
+
+    /**
+     * 创建shopify商品
+     * @param int   $shop_key  需要同步的站点id
+     * @param array $products  需要同步的商品id
+     *
+     * @return
+     */
+    public function createshopifygoods($shop_key, $products = [])
+    {
+        $shopify_web = $this->getShopifyUrl($shop_key);
+        if (empty($shopify_web)) {
+            return false;
+        }
+        $shoplaza_key = 'redis_goods_list_shopify_' . $shop_key;
+        $shoplaza_faile_key = 'redis_goods_list_faile_shopify_list';
+        $shoplaza_max_key = 'redis_goods_max_shopify_' . $shop_key;
+        $redis = Redis::connection('default');
+        if (empty($products)) {
+            $product_id_count = $redis->llen($shoplaza_key);
+            if (empty($product_id_count)) {
+                $max_goods_id = $redis->get($shoplaza_max_key);
+                $max_goods_id = empty($max_goods_id) ? 0 : $max_goods_id;
+                $goods_list = FaceGoods::where('id' , '>', $max_goods_id)->get();
+                if (empty($goods_list)) {
+                    return;
+                }
+                foreach ($goods_list as $info) {
+                    $redis->rPush($shoplaza_key, $info->product_id);
+                    $max_id = $info->id;
+                }
+                $redis->set($shoplaza_max_key, $max_id);
+            }
+        }
+        $cnt_success = 0; $cnt_faile = 0;
+        while (true) {
+            if (!empty($products)) {
+                $product_id = array_pop($products);
+            } else {
+                $product_id = $redis->lpop($shoplaza_key);
+            }
+
+            if (empty($product_id)) {
+                $product_id = $redis->lpop($shoplaza_faile_key);
+            }
+            if (empty($product_id)) {
+                break;
+            }
+            //首先查找是否已经上传到对应网站
+            if(FaceGoodsRs::where('shop_index', $shopify_web)->where('resource_product_id', $product_id)->exists()){
+                continue;
+            }
+            $goods_info = FaceGoods::where('product_id', $product_id)->first();
+            if (empty($goods_info)) {
+                continue;
+            }
+
+            $postData = [
+                'title' => $goods_info->title,
+                'body_html' => htmlspecialchars_decode($goods_info->body_html),
+                'published' => false,
+                'product_type' => $goods_info->product_type,
+                'published_scope' => $goods_info->published_scope,
+                'tags' => explode(',', $goods_info->tags),
+                'vendor' => $goods_info->vendor,
+                'handle' => $goods_info->handle,
+                'status' => $goods_info->status,
+                'template_suffix' => $goods_info->template_suffix
+            ];
+
+            $image_list = FaceGoodsImage::where('product_id', $product_id)->get();
+            $images = [];
+            $images_more = [];
+            foreach ($image_list as $imageinfo) {
+                $images[] = ['src' => $imageinfo->src];
+                $images_more[] = ['src' => $imageinfo->src, 'variant_ids' => json_decode($imageinfo->variant_ids, true)];
+            }
+            // $data['product'];
+            if (!empty($images)) {
+                $postData['images'] = $images;
+            }
+
+            $sku_list = FaceGoodsSku::where('product_id', $product_id)->get();
+
+            $variants = [];
+            foreach ($sku_list as $sk => $skuinfo) {
+                $variant = [
+                    'title' => $skuinfo->title,
+                    'price' => (double)$skuinfo->price,
+                    'sku' => $skuinfo->sku,
+                    'inventory_policy' => $skuinfo->inventory_policy,
+                    'inventory_quantity' => (int)$skuinfo->inventory_quantity,
+                ];
+                if (!empty($skuinfo->compare_at_price)) {
+                    $variant['compare_at_price'] = (double)$skuinfo->compare_at_price;
+                }
+
+                // 重量
+                if (!empty($skuinfo->grams)) {
+                    $variant['grams'] = $skuinfo->grams;
+                }
+
+                if (!empty($skuinfo->option1)) {
+                    $variant['option1'] = $skuinfo->option1;
+                }
+                if (!empty($skuinfo->option2)) {
+                    $variant['option2'] = $skuinfo->option2;
+                }
+                if (!empty($skuinfo->option3)) {
+                    $variant['option3'] = $skuinfo->option3;
+                }
+
+                // TODO ???
+                if (!empty($skuinfo->tax_code)) {
+                    $variant['tax_code'] = $skuinfo->inventory_item_id;
+                }
+                if (!empty($skuinfo->barcode)) {
+                    $variant['barcode'] = $skuinfo->barcode;
+                }
+                if (!empty($skuinfo->weight)) {
+                    $variant['weight'] = (double)$skuinfo->weight;
+                }
+                if (!empty($skuinfo->weigh_unit)) {
+                    $variant['weigh_unit'] = $skuinfo->weight_unit;
+                }
+                $variants[] = $variant;
+            }
+
+            if (!empty($variants)) {
+                $postData['variants'] = $variants;
+            }
+
+            // $option_list = M('shopify_goods_option', 'js_', 'DB_SCHEDULE')->where(['product_id' => $product_id])->select();
+            $option_list = FaceGoodsOption::where('product_id', $product_id)->get();
+            foreach ($option_list as $option) {
+                $postData['options'][] = [
+                    'name' => $option->name,
+                    'values' => json_decode($option->values, true),
+                    'position' => $option->position
+                ];
+            }
+            $url = $shopify_web . '/admin/api/2020-10/products.json';
+            try {
+                $res = $this->getShopifyClient(20)->request('POST', $url, ['json' => ['product' => $postData]]);
+                $result = json_decode((string)$res->getBody(), true);
+                echo $result['product']['id'] . '-' . $result['product']['handle'] . PHP_EOL;
+                mLog($this->logFileName, print_r($result, true), Log::INFO, 3, LOG_PATH . 'shopify_' . date('y_m_d') . '.log');
+                // 入库，写关联关系
+                FaceGoodsRs::firstOrCreate([
+                    'resource_product_id' => $product_id,
+                    'product_id' => $result['product']['id'],
+                    'shop_type' => 'shopify',
+                    'type' => $shop_key,
+                    'shop_index' => $shopify_web
+                ]);
+                // $this->updateImage($result['product'],$sku_list,$image_list);
+                $cnt_success ++;
+            } catch (\Exception $e) {
+                $redis->rPush($shoplaza_faile_key, $product_id);
+                mLog($this->logFileName, $product_id.'========='.$e->getMessage(), Log::WARN, 3, LOG_PATH . 'shopify_' . date('y_m_d') . '.log');
+                $cnt_faile ++;
+                continue;
+            }
+            sleep(5);
+
+        }
+
+        return ['success' => $cnt_success, 'failed' => $cnt_faile];
     }
 
 }
