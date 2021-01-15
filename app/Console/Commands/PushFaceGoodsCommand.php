@@ -48,7 +48,8 @@ class PushFaceGoodsCommand extends Command
 
         if (!empty($productIds)) {
             //首先查找是否已经上传到对应网站
-            $result = FaceGoodsRs::where('type', $shop_key)->whereIn('resource_product_id', $productIds)->lists('resource_product_id');
+            $result = FaceGoodsRs::where('type', $shop_key)->whereIn('resource_product_id', $productIds)->get(['resource_product_id'])->toArray();
+            $result = array_filter(array_column($result, 'resource_product_id'));
             $productIds = array_diff($productIds, $result);
             if (empty($productIds)) {
                 $this->warn("商品[$productId]的已上传到店铺[$shop_key]($shop_web)");
@@ -61,7 +62,7 @@ class PushFaceGoodsCommand extends Command
             }
         }
 
-        $result = app(ShoplazaService::class)->createshopifygoods($shop_key);
+        $result = app(ShoplazaService::class)->createshopifygoods($shop_key, $productIds);
         if (is_array($result)) {
             $this->info("成功处理{$result['success']}个,失败{$result['failed']}个");
         } else {

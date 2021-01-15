@@ -20,6 +20,27 @@ class AppServiceProvider extends ServiceProvider
 
 
         $this->registerFacebookSdk();
+
+        if (config('app.debug')) {
+
+            \DB::listen(function ($query) {
+                $tmp = str_replace('?', '"' . '%s' . '"', $query->sql);
+                foreach ($query->bindings as $key => $item) {
+                    if (is_object($item)) {
+                        $query->bindings[$key] = date_format($item, 'Y-m-d H:i:s');
+                    }
+                }
+                $tmp = vsprintf($tmp, $query->bindings);
+                $tmp = str_replace("\\", "", $tmp);
+
+                $logFile = fopen(
+                    storage_path('logs' . DIRECTORY_SEPARATOR . 'DB_' . date('Y-m-d') . '_query.log'),
+                    'a+'
+                );
+                fwrite($logFile, date('Y-m-d H:i:s') . ': ' . $tmp . PHP_EOL);
+                fclose($logFile);
+            });
+        }
     }
 
     /**

@@ -558,6 +558,19 @@ class ShoplazaService
             }
         }
         $cnt_success = 0; $cnt_faile = 0;
+
+        // 上次错误写入队列
+        $shoplaza_faile_len = $redis->llen($shoplaza_faile_key);
+        if ($shoplaza_faile_len > 0) {
+            do {
+                $tmp_p = $redis->lpop($shoplaza_faile_key);
+                if (empty($tmp_p)) {
+                    break;
+                }
+                $redis->rPush($shoplaza_key, $tmp_p);
+            } while (true);
+        }
+
         while (true) {
             if (!empty($products)) {
                 $product_id = array_pop($products);
@@ -565,9 +578,6 @@ class ShoplazaService
                 $product_id = $redis->lpop($shoplaza_key);
             }
 
-            if (empty($product_id)) {
-                $product_id = $redis->lpop($shoplaza_faile_key);
-            }
             if (empty($product_id)) {
                 break;
             }
@@ -582,23 +592,27 @@ class ShoplazaService
 
             $postData = [
                 'title' => $goods_info->title,
-                'body_html' => htmlspecialchars_decode($goods_info->body_html),
+                'body_html' => $goods_info->description ? htmlspecialchars_decode($goods_info->description) : '',
                 'published' => false,
-                'product_type' => $goods_info->product_type,
-                'published_scope' => $goods_info->published_scope,
-                'tags' => explode(',', $goods_info->tags),
                 'vendor' => $goods_info->vendor,
                 'handle' => $goods_info->handle,
-                'status' => $goods_info->status,
-                'template_suffix' => $goods_info->template_suffix
+                'status' => 'active',
             ];
 
             $image_list = FaceGoodsImage::where('product_id', $product_id)->get();
             $images = [];
-            $images_more = [];
+            // $images_more = [];
             foreach ($image_list as $imageinfo) {
-                $images[] = ['src' => $imageinfo->src];
-                $images_more[] = ['src' => $imageinfo->src, 'variant_ids' => json_decode($imageinfo->variant_ids, true)];
+                if (empty($imageinfo->src)) {
+                    continue;
+                }
+                $imageSrc = $imageinfo->src;
+                if (str_starts_with($imageSrc, '//')) {
+                    $imageSrc = 'https:' . $imageSrc;
+                }
+
+                $images[] = ['src' => $imageSrc];
+                // $images_more[] = ['src' => $imageSrc, 'variant_ids' => json_decode($imageinfo->variant_ids, true)];
             }
             // $data['product'];
             if (!empty($images)) {
@@ -613,9 +627,13 @@ class ShoplazaService
                     'title' => $skuinfo->title,
                     'price' => (double)$skuinfo->price,
                     'sku' => $skuinfo->sku,
-                    'inventory_policy' => $skuinfo->inventory_policy,
                     'inventory_quantity' => (int)$skuinfo->inventory_quantity,
                 ];
+
+                if (!empty($skuinfo->inventory_policy)) {
+                    $variant['inventory_policy'] = $skuinfo->inventory_policy;
+                }
+
                 if (!empty($skuinfo->compare_at_price)) {
                     $variant['compare_at_price'] = (double)$skuinfo->compare_at_price;
                 }
@@ -635,9 +653,8 @@ class ShoplazaService
                     $variant['option3'] = $skuinfo->option3;
                 }
 
-                // TODO ???
                 if (!empty($skuinfo->tax_code)) {
-                    $variant['tax_code'] = $skuinfo->inventory_item_id;
+                    $variant['tax_code'] = $skuinfo->tax_code;
                 }
                 if (!empty($skuinfo->barcode)) {
                     $variant['barcode'] = $skuinfo->barcode;
@@ -664,12 +681,13 @@ class ShoplazaService
                     'position' => $option->position
                 ];
             }
-            $url = $shopify_web . '/admin/api/2020-10/products.json';
+
+            $url = $shopify_web . '/admin/api/2021-01/products.json';
             try {
                 $res = $this->getShopifyClient(20)->request('POST', $url, ['json' => ['product' => $postData]]);
                 $result = json_decode((string)$res->getBody(), true);
                 echo $result['product']['id'] . '-' . $result['product']['handle'] . PHP_EOL;
-                mLog($this->logFileName, print_r($result, true), Log::INFO, 3, LOG_PATH . 'shopify_' . date('y_m_d') . '.log');
+                mLog($this->logFileName, print_r($result, true));
                 // 入库，写关联关系
                 FaceGoodsRs::firstOrCreate([
                     'resource_product_id' => $product_id,
@@ -682,7 +700,7 @@ class ShoplazaService
                 $cnt_success ++;
             } catch (\Exception $e) {
                 $redis->rPush($shoplaza_faile_key, $product_id);
-                mLog($this->logFileName, $product_id.'========='.$e->getMessage(), Log::WARN, 3, LOG_PATH . 'shopify_' . date('y_m_d') . '.log');
+                mLog($this->logFileName, $product_id.'========='.$e->getMessage());
                 $cnt_faile ++;
                 continue;
             }
