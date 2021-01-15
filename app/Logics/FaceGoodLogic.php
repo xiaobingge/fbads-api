@@ -102,8 +102,8 @@ class FaceGoodLogic {
 			preg_match("/product:(\{.*?\}),\s*initialSlide/im", $return['data'], $match);
 		} else {
 			preg_match("/goodsDetail\s*=\s*({.*?});/im", $return['data'], $match);
-
 		}
+
 		if(empty($match[1])) {
 			return self::getReturnArr(1004,'匹配商品信息失败', $return['data']);
 		}
@@ -114,6 +114,11 @@ class FaceGoodLogic {
 
 		//转换数据结构
 		if($site == 501) {
+			preg_match('/<meta\s*name="description"\s*content="(.*?)"\s*\/>/', $return['data'], $match);
+			if($match[1]) {
+				$goodDetailArr['description'] = trim($match[1]);
+			}
+
 			$goodDetailArr = self::formatGoodData_501($goodDetailArr);
 		}
 
@@ -174,6 +179,7 @@ class FaceGoodLogic {
 		$goodDetailArr['image']['src'] =  $goodArr['mainImg'];
 		$goodDetailArr['meta_title'] = $goodArr['seoTitle'];
 		$goodDetailArr['meta_description'] = $goodArr['seoDescription'];
+		$goodDetailArr['description'] = $goodArr['description'];
 		$goodDetailArr['meta_keyword'] = $goodArr['seoKeywords'];
 		$goodDetailArr['updated_at'] = date('Y-m-d');
 		$goodDetailArr['published_at'] = date('Y-m-d');
@@ -219,7 +225,7 @@ class FaceGoodLogic {
 			'type' => $type,
 			'handle' => $goodInfo['handle'] ?: '',
 			'tags' => $goodInfo['tags'] ?: '',
-			'description' => $goodInfo['description'] ? mb_substr(self::filterEmoji($goodInfo['description']),0,200) : '',
+			'description' => $goodInfo['description'] ?  self::filterEmoji($goodInfo['description'])  : '',
 			'vendor' => $goodInfo['vendor'] ?: '',
 			'vendor_url' => $goodInfo['vendor_url'] ?: '',
 			'has_only_default_variant' => $goodInfo['has_only_default_variant'] ? 1 : 0,
@@ -349,15 +355,26 @@ class FaceGoodLogic {
 		shuffle($refererArr);
 		$referer = $refererArr[0];
 
+		$cookieArr = [
+			'__cfduid=da1cd1fd658f960b024569fb103b25efc1610615791; locale=zh; ccy=HKD; _opu=op_c2098c0fdb6c754d_17704ba6618_40c1; _opud=op_f05152be6ccb4a91_17704ba6618_8f9f; _odevice=-359279312; _ga=GA1.2.14379895.1610692062; _gid=GA1.2.1197358344.1610692062; ftr_ncd=6; _scid=3efbf76d-fc3a-4291-b460-c30a0014abc8; _sctr=1|1610640000000; _fbp=fb.1.1610692069882.1434697141; _pin_unauth=dWlkPVptRXdORE5qTnprdFl6YzRZaTAwTlRGbExUZzFZall0WXpRM00yTmtNV1l6TlRVMQ; _uetsid=c56614b056fa11eba98d996484fa462c; _uetvid=c566a6d056fa11ebb8b3edd628e0e922; forterToken=b4a6a3fbf5e24262bca6319ce02ca490_1610692684704__UDF43_9ck'
+		];
+
+		shuffle($cookieArr);
+		$cookie = $cookieArr[0];
+
 		$header = array(
 			'User-Agent:'.$userAgent,
-			'Referer: '.$referer
+			//'Cookie:'.$cookie,
+			'Referer:'.$referer,
 		);
-
 		//初始化
 		$curl = curl_init();
-		/*curl_setopt($curl, CURLOPT_PROXY, 'socks5h://localhost');
-		curl_setopt($curl, CURLOPT_PROXYPORT,$port);
+
+		if(strtoupper(substr(PHP_OS,0,3))==='WIN') {
+			curl_setopt($curl, CURLOPT_PROXY, 'socks5h://localhost');
+			curl_setopt($curl, CURLOPT_PROXYPORT,1080);
+		}
+
 		//设置抓取的url*/
 		curl_setopt($curl, CURLOPT_URL, $url);
 		//设置头文件的信息作为数据流输出
