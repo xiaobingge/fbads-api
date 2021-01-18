@@ -624,11 +624,20 @@ class ShoplazaService
             $variants = [];
             foreach ($sku_list as $sk => $skuinfo) {
                 $variant = [
-                    'title' => $skuinfo->title,
                     'price' => (double)$skuinfo->price,
                     'sku' => $skuinfo->sku,
                     'inventory_quantity' => (int)$skuinfo->inventory_quantity,
                 ];
+
+                if (!empty($skuinfo->title)) {
+                    $variant['title'] = $skuinfo->title;
+                } else {
+                    $option_array = array_filter([$skuinfo->option1, $skuinfo->option2, $skuinfo->option3]);
+                    if (!empty($option_array)) {
+                        $variant['title'] = implode(" ", $option_array);
+                    }
+                }
+
 
                 if (!empty($skuinfo->inventory_policy)) {
                     $variant['inventory_policy'] = $skuinfo->inventory_policy;
