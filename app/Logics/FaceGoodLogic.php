@@ -98,10 +98,12 @@ class FaceGoodLogic {
 			return self::getReturnArr(1003, '获取页面信息错误', $return['data']);
 		}
 
-		if(in_array($site,[500])) {
-			preg_match("/product:(\{.*?\}),\s*initialSlide/im", $return['data'], $match);
+		preg_match("/product:(\{.*?\}),\s*initialSlide/im", $return['data'], $match);
+		if($match[1]) {
+			$site = 500;
 		} else {
-			preg_match("/goodsDetail\s*=\s*({.*?});/im", $return['data'], $match);
+			preg_match("/product:(\{.*?\}),\s*initialSlide/im", $return['data'], $match);
+			$site = 501;
 		}
 
 		if(empty($match[1])) {
@@ -371,8 +373,8 @@ class FaceGoodLogic {
 		$curl = curl_init();
 
 		if(strtoupper(substr(PHP_OS,0,3))==='WIN') {
-			curl_setopt($curl, CURLOPT_PROXY, 'socks5h://localhost');
-			curl_setopt($curl, CURLOPT_PROXYPORT,1080);
+			//curl_setopt($curl, CURLOPT_PROXY, 'socks5h://localhost');
+			//curl_setopt($curl, CURLOPT_PROXYPORT,1080);
 		}
 
 		//设置抓取的url*/
