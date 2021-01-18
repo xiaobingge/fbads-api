@@ -687,9 +687,9 @@ class ShoplazaService
                 $postData['variants'] = $variants;
             }
 
-            // $option_list = M('shopify_goods_option', 'js_', 'DB_SCHEDULE')->where(['product_id' => $product_id])->select();
+
             $option_list = FaceGoodsOption::where('product_id', $product_id)->get();
-            if (!empty($option_list)) {
+            if ($option_list->isNotEmpty()) {
                 foreach ($option_list as $option) {
                     $postData['options'][] = [
                         'name' => $option->name,
@@ -698,6 +698,7 @@ class ShoplazaService
                     ];
                 }
             } else {
+                $variantOptions1 = array_values(array_unique(array_filter($variantOptions1)));
                 if (!empty($variantOptions1)) {
                     $postData['options'][] = [
                         'name' => 'Color',
@@ -705,6 +706,7 @@ class ShoplazaService
                         'position' => 1
                     ];
                 }
+                $variantOptions2 = array_values(array_unique(array_filter($variantOptions2)));
                 if (!empty($variantOptions2)) {
                     $postData['options'][] = [
                         'name' => 'Size',
