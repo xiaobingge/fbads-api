@@ -622,6 +622,9 @@ class ShoplazaService
             $sku_list = FaceGoodsSku::where('product_id', $product_id)->get();
 
             $variants = [];
+            $variantOptions1 = [];
+            $variantOptions2 = [];
+            $variantOptions3 = [];
             foreach ($sku_list as $sk => $skuinfo) {
                 $variant = [
                     'price' => (double)$skuinfo->price,
@@ -654,12 +657,15 @@ class ShoplazaService
 
                 if (!empty($skuinfo->option1)) {
                     $variant['option1'] = $skuinfo->option1;
+                    $variantOptions1[] = $skuinfo->option1;
                 }
                 if (!empty($skuinfo->option2)) {
                     $variant['option2'] = $skuinfo->option2;
+                    $variantOptions2[] = $skuinfo->option2;
                 }
                 if (!empty($skuinfo->option3)) {
                     $variant['option3'] = $skuinfo->option3;
+                    $variantOptions3[] = $skuinfo->option3;
                 }
 
                 if (!empty($skuinfo->tax_code)) {
@@ -683,12 +689,30 @@ class ShoplazaService
 
             // $option_list = M('shopify_goods_option', 'js_', 'DB_SCHEDULE')->where(['product_id' => $product_id])->select();
             $option_list = FaceGoodsOption::where('product_id', $product_id)->get();
-            foreach ($option_list as $option) {
-                $postData['options'][] = [
-                    'name' => $option->name,
-                    'values' => json_decode($option->values, true),
-                    'position' => $option->position
-                ];
+            if (!empty($option_list)) {
+                foreach ($option_list as $option) {
+                    $postData['options'][] = [
+                        'name' => $option->name,
+                        'values' => json_decode($option->values, true),
+                        'position' => $option->position
+                    ];
+                }
+            } else {
+                if (!empty($variantOptions1)) {
+                    $postData['options'][] = [
+                        'name' => 'Color',
+                        'values' => $variantOptions1,
+                        'position' => 1
+                    ];
+                }
+                if (!empty($variantOptions2)) {
+                    $postData['options'][] = [
+                        'name' => 'Size',
+                        'values' => $variantOptions2,
+                        'position' => 2
+                    ];
+                }
+                // TODO ??
             }
 
             $url = $shopify_web . '/admin/api/2021-01/products.json';
