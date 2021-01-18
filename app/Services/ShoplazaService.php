@@ -634,9 +634,9 @@ class ShoplazaService
                     $variant['inventory_policy'] = $skuinfo->inventory_policy;
                 }
 
-                if (!empty($skuinfo->compare_at_price)) {
-                    $variant['compare_at_price'] = (double)$skuinfo->compare_at_price;
-                }
+//                if (!empty($skuinfo->compare_at_price)) {
+//                    $variant['compare_at_price'] = (double)$skuinfo->compare_at_price;
+//                }
 
                 // 重量
                 if (!empty($skuinfo->grams)) {
