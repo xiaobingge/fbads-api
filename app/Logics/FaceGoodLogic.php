@@ -114,6 +114,12 @@ class FaceGoodLogic {
 			return self::getReturnArr(1005,'解析json数据出错', $return['data']);
 		}
 
+		$priceCurrency = 'USD';
+		preg_match('/"priceCurrency":\s*"(.*?)"/im', $return['data'], $match);
+		if($match[1]) {
+			$priceCurrency = $match[1];
+		}
+
 		//转换数据结构
 		if($site == 501) {
 			preg_match('/<meta\s*name="description"\s*content="(.*?)"\s*\/>/', $return['data'], $match);
@@ -123,11 +129,11 @@ class FaceGoodLogic {
 			$goodDetailArr = self::formatGoodData_501($goodDetailArr);
 		}
 
-		$return = $this->insertCollectGoodData($goodDetailArr, $site, $jpId, $collectId);
+		$return = $this->insertCollectGoodData($goodDetailArr, $site, $jpId, $collectId, $priceCurrency);
 		return $return;
 	}
 
-	public function insertCollectGoodData($goodDetailArr, $site=0, $jpId=0, $collectId='') {
+	public function insertCollectGoodData($goodDetailArr, $site=0, $jpId=0, $collectId='', $priceCurrency='') {
 		if(empty($goodDetailArr) || !is_numeric($site)) {
 			return self::getReturnArr(1001,'参数错误');
 		}
@@ -142,7 +148,7 @@ class FaceGoodLogic {
 			return self::getReturnArr(1000,'商品已经添加');
 		}
 
-		$goodArr = self::getGoodDetailInfo($goodDetailArr, $site, $jpId, $collectId);
+		$goodArr = self::getGoodDetailInfo($goodDetailArr, $site, $jpId, $collectId, $priceCurrency);
 
 		return self::addGoodDetail($goodArr);
 	}
@@ -214,11 +220,33 @@ class FaceGoodLogic {
 			$goodDetailArr['variants'][] = $skuArr;
 		}
 
+		$option1 = array_unique(array_column($goodDetailArr['variants'], 'option1'));
+		$option2 = array_unique(array_column($goodDetailArr['variants'], 'option2'));
+		$time = time().mt_rand(1,9999);
+		if($option1) {
+			$goodDetailArr['options'][] = [
+				'id' => sprintf('%u',crc32($goodArr['spu'].implode('',$option1).$time)),
+				'product_id' => $goodArr['spu'],
+				'name' => 'Color',
+				'position' => 1,
+				'values' => $option1
+			];
+		}
+		if($option2) {
+			$goodDetailArr['options'][] = [
+				'id' => sprintf('%u',crc32($goodArr['spu'].implode('',$option2).$time)),
+				'product_id' => $goodArr['spu'],
+				'name' => 'Size',
+				'position' => 2,
+				'values' => $option2
+			];
+		}
+
 		$goodDetailArr['inventory_quantity'] = $totalStockNum;
 		return $goodDetailArr;
 	}
 
-	public static  function getGoodDetailInfo($goodInfo, $type, $jpId, $collectId) {
+	public static  function getGoodDetailInfo($goodInfo, $type, $jpId, $collectId, $priceCurrency) {
 		$goodBaseInfo = [
 			'jp_id' => $jpId,
 			'title' => self::filterEmoji($goodInfo['title']),
@@ -288,6 +316,11 @@ class FaceGoodLogic {
 				} else {
 					$image = $sku['image'] ? json_encode($sku['image']): '';
 				}
+				if(strtolower($priceCurrency) == 'hkd') {
+					$sku['compare_at_price'] = $sku['compare_at_price']  ? bcmul($sku['compare_at_price'], 0.129, 2) : 0;
+					$sku['price'] = $sku['price']  ? bcmul($sku['price'], 0.129, 2) : 0;
+				}
+
 				$sku = [
 					'image' =>  $image,
 					'barcode' =>  $sku['barcode'] ?: '',
@@ -372,8 +405,8 @@ class FaceGoodLogic {
 		$curl = curl_init();
 
 		if(strtoupper(substr(PHP_OS,0,3))==='WIN') {
-			//curl_setopt($curl, CURLOPT_PROXY, 'socks5h://localhost');
-			//curl_setopt($curl, CURLOPT_PROXYPORT,1080);
+			curl_setopt($curl, CURLOPT_PROXY, 'socks5h://localhost');
+			curl_setopt($curl, CURLOPT_PROXYPORT,1080);
 		}
 
 		//设置抓取的url*/
