@@ -102,7 +102,7 @@ class FaceGoodLogic {
 		if($match[1]) {
 			$site = 500;
 		} else {
-			preg_match("/product:(\{.*?\}),\s*initialSlide/im", $return['data'], $match);
+			preg_match("/goodsDetail\s*=\s*({.*?});/im", $return['data'], $match);
 			$site = 501;
 		}
 
@@ -120,7 +120,6 @@ class FaceGoodLogic {
 			if($match[1]) {
 				$goodDetailArr['description'] = trim($match[1]);
 			}
-
 			$goodDetailArr = self::formatGoodData_501($goodDetailArr);
 		}
 
