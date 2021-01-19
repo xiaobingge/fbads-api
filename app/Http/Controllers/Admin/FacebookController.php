@@ -103,6 +103,8 @@ class FacebookController extends Controller
         $searchType = $request->input('type');
         $keyword = $request->input('keyword');
 
+        $columns = ['id', 'user_id', 'ad_account','ad_account_int', 'name', 'timezone_name', 'currency', 'spend_cap', 'amount_spent'];
+
         if (!empty($searchType) && in_array($searchType, [1, 2, 3]) && !empty($keyword)) {
 
             switch ($searchType) {
@@ -117,9 +119,9 @@ class FacebookController extends Controller
                     break;
             }
 
-            $result = $model->paginate($limit, ['user_id', 'ad_account','ad_account_int', 'name', 'timezone_name', 'currency', 'spend_cap', 'amount_spent']);
+            $result = $model->paginate($limit, $columns);
         } else {
-            $result = AdAccount::paginate($limit, ['user_id', 'ad_account','ad_account_int', 'name', 'timezone_name', 'currency', 'spend_cap', 'amount_spent']);
+            $result = AdAccount::paginate($limit, $columns);
         }
 
         return response()->json([

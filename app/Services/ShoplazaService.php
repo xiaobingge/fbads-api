@@ -592,12 +592,19 @@ class ShoplazaService
 
             $postData = [
                 'title' => $goods_info->title,
-                'body_html' => $goods_info->description ? htmlspecialchars_decode($goods_info->description) : '',
                 'published' => false,
                 'vendor' => $goods_info->vendor,
                 'handle' => $goods_info->handle,
                 'status' => 'active',
             ];
+
+            if (!empty($goods_info->content)) {
+                $postData['body_html'] = htmlspecialchars_decode($goods_info->content);
+            } elseif (!empty($goods_info->description)) {
+                $postData['body_html'] = htmlspecialchars_decode($goods_info->description);
+            } else {
+                $postData['body_html'] = '';
+            }
 
             $image_list = FaceGoodsImage::where('product_id', $product_id)->get();
             $images = [];
