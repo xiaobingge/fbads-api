@@ -35,7 +35,7 @@ class OauthService {
             ]);
             return json_decode($response->getBody(),true);
         } catch(RequestException $e){
-            mLog('OauthToken/'. date("Ymd") . '.log', '', ['args' => $e->getRequest(), 'result' =>$e->getResponse()]);
+            mLog('OauthToken/'. date("Ymd") . '.log', '', json_encode(['args' => $e->getRequest(), 'result' =>$e->getResponse()]));
             return false;
         }
 

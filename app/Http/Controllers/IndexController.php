@@ -18,7 +18,7 @@ class IndexController extends Controller
 {
     public function list()
     {
-        $result = AdAccount::with('auth')->paginate(10);
+        $result = AdAccount::with('auth')->paginate(50);
 
         if (env('APP_DEBUG')) {
             return view('list')->with('result', $result);
