@@ -11,7 +11,7 @@ class OauthService {
 
     public function __construct()
     {
-        if (APP_DEBUG) {
+        if (env('APP_DEBUG')) {
             $this->_url = env('APP_URL').'/oauth/token';
         } else {
             $this->_url = 'http://nginx/oauth/token';
