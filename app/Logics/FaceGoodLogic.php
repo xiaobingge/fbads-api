@@ -106,6 +106,8 @@ class FaceGoodLogic {
 			$site = 501;
 		}
 
+		$detailDesc = self::getGoodDetailDesc($site, $return['data']);
+
 		if(empty($match[1])) {
 			return self::getReturnArr(1004,'匹配商品信息失败', $return['data']);
 		}
@@ -129,8 +131,31 @@ class FaceGoodLogic {
 			$goodDetailArr = self::formatGoodData_501($goodDetailArr);
 		}
 
+		$goodDetailArr['detail_desc'] = $detailDesc;
+
 		$return = $this->insertCollectGoodData($goodDetailArr, $site, $jpId, $collectId, $priceCurrency);
 		return $return;
+	}
+
+	public static function getGoodDetailDesc($site, $data) {
+		$detailDesc = '';
+		if($site == 500) {
+			//preg_match('/(<div\s*style="width:\s*100%;\s*margin-bottom:\s*20px;">.*?)<\/div>\s*<input/ims', $data, $detailMatch);
+			preg_match('/product_detail_description_content">(.*?)(?:(<\/div>\s*<input)|(<p>\s*<script))/ims', $data, $detailMatch);
+			if($detailMatch) {
+				$detailDesc = preg_replace_callback(
+					'|(data-src="https://img\.staticdj\.com/\w+_{width}\.jpeg"\s*alt=""\s*width="(\d+)").*?|',
+					function ($matches) {
+						return str_replace(['data-src', '{width}'], ['src',$matches[2]], $matches[1]);
+					}, $detailMatch[1]);
+			}
+		}else {
+			preg_match('/<div\s*class="accord-cont\s*description-html">(.*?)<\/div>/ims', $data, $detailMatch);
+			if($detailMatch) {
+				$detailDesc = $detailMatch[1];
+			}
+		}
+		return trim($detailDesc);
 	}
 
 	public function insertCollectGoodData($goodDetailArr, $site=0, $jpId=0, $collectId='', $priceCurrency='') {
@@ -250,6 +275,7 @@ class FaceGoodLogic {
 		$goodBaseInfo = [
 			'jp_id' => $jpId,
 			'title' => self::filterEmoji($goodInfo['title']),
+			'content' => self::filterEmoji($goodInfo['detail_desc']),
 			'cid' => $collectId,
 			'type' => $type,
 			'handle' => $goodInfo['handle'] ?: '',
@@ -362,6 +388,9 @@ class FaceGoodLogic {
 	}
 
 	public static function filterEmoji($str) {
+		if(empty($str)){
+			return $str;
+		}
 		$str = preg_replace_callback( '/./u',
 			function (array $match) {
 				return strlen($match[0]) >= 4 ? '' : $match[0];
