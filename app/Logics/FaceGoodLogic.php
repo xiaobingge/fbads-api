@@ -144,11 +144,12 @@ class FaceGoodLogic {
 			preg_match('/product_detail_description_content">(.*?)(?:(<\/div>\s*<input)|(<p>\s*<script))/ims', $data, $detailMatch);
 			if($detailMatch) {
 				$detailDesc = preg_replace_callback(
-					'|(data-src="https://img\.staticdj\.com/\w+_{width}\.jpeg"\s*alt=""\s*width="(\d+)").*?|',
+					'#(data-src="https://img\.staticdj\.com/\w+_{width}\.(?:jpg|gif|bmp|bnp|png|jpeg)"\s*alt=""\s*width="(\d+)").*?#',
 					function ($matches) {
 						return str_replace(['data-src', '{width}'], ['src',$matches[2]], $matches[1]);
 					}, $detailMatch[1]);
 			}
+
 		}else {
 			preg_match('/<div\s*class="accord-cont\s*description-html">(.*?)<\/div>/ims', $data, $detailMatch);
 			if($detailMatch) {
