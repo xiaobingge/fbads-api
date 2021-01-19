@@ -11,17 +11,20 @@ class OauthService {
 
     public function __construct()
     {
-        $this->_url = env('APP_URL').'/oauth/token';
+        if (APP_DEBUG) {
+            $this->_url = env('APP_URL').'/oauth/token';
+        } else {
+            $this->_url = 'http://nginx/oauth/token';
+        }
     }
     /*
      * 获取token
      */
     public function getOauthToken($client_id,$client_secret,$username,$password,$provider)
     {
-        $http = new Client();
         // 发送相关字段到后端应用获取授权令牌
         try{
-            $response = $http->post($this->_url, [
+            $response = app(Client::class)->post($this->_url, [
                 'form_params' => [
                     'grant_type' => 'password',
                     'client_id' => $client_id,
@@ -31,11 +34,14 @@ class OauthService {
                     'provider' => $provider, //守卫
                     'scope' => '*'
                 ],
-                'timeout'=>10
+                'timeout'=>10,
+                'headers' => [
+                    'Host' => 'api.myadclick.com'
+                ]
             ]);
             return json_decode($response->getBody(),true);
         } catch(RequestException $e){
-            mLog('OauthToken/'. date("Ymd") . '.log', '', json_encode(['args' => $e->getRequest(), 'result' =>$e->getResponse()]));
+            mLog('OauthToken/'. date("Ymd") . '.log', '', ['args' => $e->getRequest(), 'result' =>$e->getResponse(), 'msg' => $e->getMessage()]);
             return false;
         }
 

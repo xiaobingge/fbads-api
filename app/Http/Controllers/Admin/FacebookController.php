@@ -22,7 +22,9 @@ class FacebookController extends Controller
             2 => '锁定'
         ];
 
-        $result = AdAuth::paginate(10);
+        $limit = $request->input('limit') ?: 10;
+
+        $result = AdAuth::paginate($limit);
 
         $retList = [];
         foreach ($result->items() as $val)
@@ -36,7 +38,6 @@ class FacebookController extends Controller
                 'scope'  => $val->scope,
                 'status'  => $statusText[$val->status],
                 'createTime'  => $val->last_modified,
-
             ];
         }
 
@@ -45,6 +46,7 @@ class FacebookController extends Controller
             'msg'  => 'success',
             'data' => [
                 'hasMorePage' => $result->hasMorePages() ? 1 : 0,
+                'total' => $result->total(),
                 'list' => $retList
             ]
         ]);
