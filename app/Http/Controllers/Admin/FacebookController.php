@@ -107,37 +107,43 @@ class FacebookController extends Controller
     }
 
 
-    public function adaccounts()
+    public function adaccounts(Request $request)
     {
-        $result = AdAccount::paginate(10, ['user_id', 'ad_account','ad_account_int','name']);
+        $limit = $request->input('limit') ?: 10;
+
+        $result = AdAccount::paginate($limit, ['user_id', 'ad_account','ad_account_int','name']);
 
         return response()->json([
             'code' => 1000,
             'msg'  => 'success',
             'data' => [
                 'hasMorePage' => $result->hasMorePages() ? 1 : 0,
-                'list' => $result->items()
+                'list' => $result->items(),
+                'total' => $result->total()
             ]
         ]);
     }
 
     public function adspixels(Request $request)
     {
-        $result = AdPixel::paginate(10);
+        $limit = $request->input('limit') ?: 10;
+        $result = AdPixel::paginate($limit);
 
         return response()->json($result);
     }
 
     public function facebookPage(Request $request)
     {
-        $result = AdPage::paginate(10, ['id', 'user_id', 'page_id', 'name', 'link', 'is_published']);
+        $limit = $request->input('limit') ?: 10;
+        $result = AdPage::paginate($limit, ['id', 'user_id', 'page_id', 'name', 'link', 'is_published']);
 
         return response()->json([
             'code' => 1000,
             'msg'  => 'success',
             'data' => [
                 'hasMorePage' => $result->hasMorePages() ? 1 : 0,
-                'list' => $result->items()
+                'list' => $result->items(),
+                'total' => $result->total()
             ]
         ]);
     }
