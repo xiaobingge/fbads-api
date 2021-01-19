@@ -71,25 +71,11 @@ class IndexController extends Controller
             echo "You are logged in!";
             try {
                 // Returns a `Facebook\Response` object
-                $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions,picture', $accessToken);
+                $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,business_users,businesses,permissions,picture', $accessToken);
 
                 $user = $response->getGraphUser();
 
                 $appId = \FacebookSdk::getAppId();
-
-                // $adaccounts = [];
-                foreach($user['adaccounts'] as $adaccount) {
-                    // echo $adaccount['account_id'] . '-' . $adaccount['id'] . '<br />';
-                    \App\Models\AdAccount::firstOrCreate(
-                        [
-                            'type' => 1,
-                            'app_id' => $appId,
-                            'user_id' => $user['id'],
-                            'ad_account_int' =>$adaccount['account_id'],
-                            'ad_account' => $adaccount['id']
-                        ]
-                    );
-                }
 
                 // page
                 if (isset($user['accounts']) && count($user['accounts']) > 0) {
@@ -121,6 +107,10 @@ class IndexController extends Controller
                         'access_token' => $accessToken
                     ]
                 );
+
+                \Artisan::call('check:adaccounts', [
+                    '--user_id' => $user['id']
+                ]);
 
                 return redirect(route('facebook_list'));
                 // echo '<a href="' . route('facebook_list') . '">授权列表</a>';

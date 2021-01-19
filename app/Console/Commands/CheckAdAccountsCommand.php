@@ -33,7 +33,7 @@ class CheckAdAccountsCommand extends Command
         $userId = $this->option('user_id');
 
         do {
-            $model = AdAuth::where('app_id', '663043711013811')->where('type', 1);
+            $model = AdAuth::where('app_id', \FacebookSdk::getAppId())->where('type', 1);
             if (!empty($userId)) {
                 $model = $model->where('user_id', $userId);
             }
