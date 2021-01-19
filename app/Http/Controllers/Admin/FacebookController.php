@@ -69,7 +69,7 @@ class FacebookController extends Controller
         $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,business_users,businesses,permissions,picture', $accessToken);
 
         $user = $response->getGraphUser();
-        
+
         // $adaccounts
         \Artisan::call('check:adaccounts', [
             '--user_id' => $user['id']
@@ -100,8 +100,27 @@ class FacebookController extends Controller
     public function adaccounts(Request $request)
     {
         $limit = $request->input('limit') ?: 10;
+        $searchType = $request->input('type');
+        $keyword = $request->input('keyword');
 
-        $result = AdAccount::paginate($limit, ['user_id', 'ad_account','ad_account_int', 'name', 'timezone_name', 'currency', 'spend_cap', 'amount_spent']);
+        if (!empty($searchType) && in_array($searchType, [1, 2, 3]) && !empty($keyword)) {
+
+            switch ($searchType) {
+                case 1:
+                    $model = AdAccount::where('id', $keyword);
+                    break;
+                case 2:
+                    $model = AdAccount::where('name', $keyword);
+                    break;
+                case 3:
+                    $model = AdAccount::where('ad_account', $keyword);
+                    break;
+            }
+
+            $result = $model->paginate($limit, ['user_id', 'ad_account','ad_account_int', 'name', 'timezone_name', 'currency', 'spend_cap', 'amount_spent']);
+        } else {
+            $result = AdAccount::paginate($limit, ['user_id', 'ad_account','ad_account_int', 'name', 'timezone_name', 'currency', 'spend_cap', 'amount_spent']);
+        }
 
         return response()->json([
             'code' => 1000,
