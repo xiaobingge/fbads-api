@@ -66,24 +66,14 @@ class FacebookController extends Controller
         $accessToken = $info->access_token;
 
         // Returns a `Facebook\Response` object
-        $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,adaccounts,business_users,businesses,permissions,picture', $accessToken);
+        $response = \FacebookSdk::get('/me?fields=id,name,email,accounts,business_users,businesses,permissions,picture', $accessToken);
 
         $user = $response->getGraphUser();
-
-        $appId = \FacebookSdk::getAppId();
-
-        // $adaccounts = [];
-        foreach($user['adaccounts'] as $adaccount) {
-            AdAccount::firstOrCreate(
-                [
-                    'type' => 1,
-                    'app_id' => $appId,
-                    'user_id' => $user['id'],
-                    'ad_account_int' =>$adaccount['account_id'],
-                    'ad_account' => $adaccount['id']
-                ]
-            );
-        }
+        
+        // $adaccounts
+        \Artisan::call('check:adaccounts', [
+            '--user_id' => $user['id']
+        ]);
 
         // page
         if (isset($user['accounts']) && count($user['accounts']) > 0) {
@@ -111,7 +101,7 @@ class FacebookController extends Controller
     {
         $limit = $request->input('limit') ?: 10;
 
-        $result = AdAccount::paginate($limit, ['user_id', 'ad_account','ad_account_int','name']);
+        $result = AdAccount::paginate($limit, ['user_id', 'ad_account','ad_account_int', 'name', 'timezone_name', 'currency', 'spend_cap', 'amount_spent']);
 
         return response()->json([
             'code' => 1000,

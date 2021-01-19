@@ -20,7 +20,10 @@ class AdAccount extends Model
      */
     public $timestamps = false;
 
-    protected $fillable = ['type', 'app_id', 'user_id', 'ad_account', 'ad_account_int', 'name', 'account_status', 'sync_time', 'status'];
+    protected $fillable = ['type', 'app_id', 'user_id', 'ad_account', 'ad_account_int', 'name', 'account_status',
+        'sync_time', 'status',
+        'timezone_name', 'currency', 'spend_cap', 'amount_spent',
+    ];
 
     public function auth()
     {
