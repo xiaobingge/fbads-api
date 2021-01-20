@@ -98,22 +98,33 @@ class FaceGoodLogic {
 			return self::getReturnArr(1003, '获取页面信息错误', $return['data']);
 		}
 
-		preg_match("/product:(\{.*?\}),\s*initialSlide/im", $return['data'], $match);
-		if($match[1]) {
-			$site = 500;
-		} else {
-			preg_match("/goodsDetail\s*=\s*({.*?});/im", $return['data'], $match);
-			$site = 501;
-		}
+		$pregArr = [
+			500 => "/product:(\{.*?\}),\s*initialSlide/im",
+			501 => "/goodsDetail\s*=\s*({.*?});/im",
+			502 => "/const\s*product\s*=\s*(.*?);\s*const/ims"
+		];
 
-		$detailDesc = self::getGoodDetailDesc($site, $return['data']);
+		$site = 0;
+		foreach($pregArr as $s => $preg) {
+			preg_match($preg, $return['data'], $match);
+			if($match[1]) {
+				$site = $s;
+				break;
+			}
+		}
 
 		if(empty($match[1])) {
 			return self::getReturnArr(1004,'匹配商品信息失败', $return['data']);
 		}
+
 		$goodDetailArr = json_decode($match[1], true);
 		if (JSON_ERROR_NONE !== json_last_error()) {
 			return self::getReturnArr(1005,'解析json数据出错', $return['data']);
+		}
+		if($site == 502) {
+			$detailDesc = $goodDetailArr['description'];
+		} else {
+			$detailDesc = self::getGoodDetailDesc($site, $return['data']);
 		}
 
 		$priceCurrency = 'USD';
@@ -123,12 +134,17 @@ class FaceGoodLogic {
 		}
 
 		//转换数据结构
-		if($site == 501) {
-			preg_match('/<meta\s*name="description"\s*content="(.*?)"\s*\/>/', $return['data'], $match);
+		if(in_array($site, [501,502])) {
+			preg_match('/<meta\s*name="description"\s*content="(.*?)"\s*[\/]?>/', $return['data'], $match);
 			if($match[1]) {
 				$goodDetailArr['description'] = trim($match[1]);
 			}
+		}
+		if($site == 501) {
 			$goodDetailArr = self::formatGoodData_501($goodDetailArr);
+		}
+		if($site == 502) {
+			$goodDetailArr = self::formatGoodData_502($goodDetailArr);
 		}
 
 		$goodDetailArr['detail_desc'] = $detailDesc;
@@ -140,16 +156,22 @@ class FaceGoodLogic {
 	public static function getGoodDetailDesc($site, $data) {
 		$detailDesc = '';
 		if($site == 500) {
-			//preg_match('/(<div\s*style="width:\s*100%;\s*margin-bottom:\s*20px;">.*?)<\/div>\s*<input/ims', $data, $detailMatch);
-			preg_match('/product_detail_description_content">(.*?)(?:(<\/div>\s*<input)|(<p>\s*<script))/ims', $data, $detailMatch);
-			if($detailMatch) {
-				$detailDesc = preg_replace_callback(
-					'#(data-src="https://img\.staticdj\.com/\w+_{width}\.(?:jpg|gif|bmp|bnp|png|jpeg)"\s*alt=""\s*width="(\d+)").*?#',
-					function ($matches) {
-						return str_replace(['data-src', '{width}'], ['src',$matches[2]], $matches[1]);
-					}, $detailMatch[1]);
+			$pregArr = [
+				'#product_detail_description_content">(.*?)(?:(</div>\s*<input)|(<p>\s*<script))#ims',
+				'#<label\s*class="dj_skin_text product-info__desc-tab-header"\s*for="r-1539149753700-1">\s*(?:.*?)\s*<i\s*class="sep-font\s*sep-font-angle-down-strong"></i>\s*</label>\s*<div\s*class="product-info__desc-tab-content">(.*?)(?:(<\/div>\s*<input)|(<p>\s*<script))#ims',
+				'#class="product-info__desc-tab-content">(.*?)(?:(<\/div>\s*<input)|(<p>\s*<script))#ims',
+			];
+			foreach($pregArr as $preg) {
+				preg_match($preg, $data, $detailMatch);
+				if($detailMatch) {
+					$detailDesc = preg_replace_callback(
+						'#(data-src="https://img\.staticdj\.com/\w+_{width}\.(?:jpg|gif|bmp|bnp|png|jpeg)"\s*(?:alt="")*?\s*width="(\d+)").*?#',
+						function ($matches) {
+							return str_replace(['data-src', '{width}'], ['src',$matches[2]], $matches[1]);
+						}, $detailMatch[1]);
+					break;
+				}
 			}
-
 		}else {
 			preg_match('/<div\s*class="accord-cont\s*description-html">(.*?)<\/div>/ims', $data, $detailMatch);
 			if($detailMatch) {
@@ -246,13 +268,73 @@ class FaceGoodLogic {
 			$goodDetailArr['variants'][] = $skuArr;
 		}
 
+		$goodDetailArr = self::getGoodOptions($goodDetailArr);
+		$goodDetailArr['inventory_quantity'] = $totalStockNum;
+		return $goodDetailArr;
+	}
+
+
+	public static function formatGoodData_502($goodArr) {
+		$goodDetailArr['id'] = $goodArr['id'];
+		$goodDetailArr['title'] = $goodArr['title'];
+		$goodDetailArr['handle'] = $goodArr['handle'];
+		$goodDetailArr['created_at'] = $goodArr['created_at'];
+		$goodDetailArr['image']['src'] =  $goodArr['featured_image'];
+		$goodDetailArr['description'] = $goodArr['description'];
+		$goodDetailArr['updated_at'] = date('Y-m-d');
+		$goodDetailArr['published_at'] = $goodArr['published_at'];
+		$goodDetailArr['vendor'] = $goodArr['vendor'];
+		$goodDetailArr['tags'] = $goodArr['tags'] ? implode(',', $goodArr['tags']) : '';
+
+		foreach($goodArr['images'] as $key=>$image) {
+			$goodDetailArr['images'][] = [
+				'src' => $image,
+				'id' => sprintf('%u',crc32($goodArr['id'].md5($image).time().$key))
+			];
+		}
+
+		$totalStockNum = 0;
+		foreach($goodArr['variants'] as $key=>$sku) {
+			$stock = $sku['stock'] ? $sku['stock'] : mt_rand(100,2000);
+			$totalStockNum += $stock;
+			$imgArr = [
+				'src' => $sku['featured_image']['src'],
+				'width' => $sku['featured_image']['width'],
+				'height' => $sku['featured_image']['height'],
+			];
+			$skuArr['image'] = $imgArr;
+			$skuArr['barcode'] = $sku['barcode'];
+			$skuArr['compare_at_price'] = $sku['compare_at_price'];
+			$skuArr['price'] =  $sku['price']/100;
+			$skuArr['product_id'] = $sku['featured_image']['product_id'];
+			$skuArr['sku'] = $sku['sku'];
+			$skuArr['id'] = $sku['id'];
+			$skuArr['created_at'] = $sku['featured_image']['created_at'];
+			$skuArr['inventory_quantity'] = $stock;
+			$skuArr['option1'] = $sku['option2'];
+			$skuArr['option2'] =  $sku['option1'];
+			$skuArr['position'] =  $key+1;
+
+			$goodDetailArr['variants'][] = $skuArr;
+		}
+
+		$goodDetailArr = self::getGoodOptions($goodDetailArr);
+		$goodDetailArr['inventory_quantity'] = $totalStockNum;
+		return $goodDetailArr;
+	}
+
+
+	public static function getGoodOptions($goodDetailArr) {
+		if(empty($goodDetailArr['variants'])) {
+			return $goodDetailArr;
+		}
 		$option1 = array_unique(array_column($goodDetailArr['variants'], 'option1'));
 		$option2 = array_unique(array_column($goodDetailArr['variants'], 'option2'));
 		$time = time().mt_rand(1,9999);
 		if($option1) {
 			$goodDetailArr['options'][] = [
-				'id' => sprintf('%u',crc32($goodArr['spu'].implode('',$option1).$time)),
-				'product_id' => $goodArr['spu'],
+				'id' => sprintf('%u',crc32($goodDetailArr['id'].implode('',$option1).$time)),
+				'product_id' => $goodDetailArr['id'],
 				'name' => 'Color',
 				'position' => 1,
 				'values' => $option1
@@ -260,15 +342,14 @@ class FaceGoodLogic {
 		}
 		if($option2) {
 			$goodDetailArr['options'][] = [
-				'id' => sprintf('%u',crc32($goodArr['spu'].implode('',$option2).$time)),
-				'product_id' => $goodArr['spu'],
+				'id' => sprintf('%u',crc32($goodDetailArr['id'].implode('',$option2).$time)),
+				'product_id' => $goodDetailArr['id'],
 				'name' => 'Size',
 				'position' => 2,
 				'values' => $option2
 			];
 		}
 
-		$goodDetailArr['inventory_quantity'] = $totalStockNum;
 		return $goodDetailArr;
 	}
 
@@ -280,7 +361,7 @@ class FaceGoodLogic {
 			'cid' => $collectId,
 			'type' => $type,
 			'handle' => $goodInfo['handle'] ?: '',
-			'tags' => $goodInfo['tags'] ?: '',
+			'tags' => $goodInfo['tags'] ? self::filterEmoji($goodInfo['tags']): '',
 			'description' => $goodInfo['description'] ?  self::filterEmoji($goodInfo['description'])  : '',
 			'vendor' => $goodInfo['vendor'] ?: '',
 			'vendor_url' => $goodInfo['vendor_url'] ?: '',
@@ -352,7 +433,7 @@ class FaceGoodLogic {
 					'image' =>  $image,
 					'barcode' =>  $sku['barcode'] ?: '',
 					'compare_at_price' =>  $sku['compare_at_price'] ?: 0,
-					'created_at' =>  date('Y-m-d H:i:s', strtotime($sku['created_at'])),
+					'created_at' =>  $sku['created_at'] ? date('Y-m-d H:i:s', strtotime($sku['created_at'])) : date('Y-m-d H:i:s'),
 					'fulfillment_service' =>  $sku['fulfillment_service'] ?: '',
 					'grams' =>  $sku['grams'] ?: 0,
 					'weight' =>  $sku['weight'] ?: 0,
