@@ -178,6 +178,9 @@ class FaceGoodLogic {
 				$detailDesc = $detailMatch[1];
 			}
 		}
+
+		$preg = "/<script[\s\S]*?<\/script>/i";
+		$detailDesc = preg_replace($preg,"",$detailDesc);    //第四个参数中的3表示替换3次，默认是-1，替换全部
 		return trim($detailDesc);
 	}
 
@@ -202,25 +205,38 @@ class FaceGoodLogic {
 	}
 
 	public static  function addGoodDetail($goodDetailArr) {
+		\DB::beginTransaction();
 		$goodId = FaceGoods::query()->insertGetId($goodDetailArr['good_info']);
 		if(!$goodId) {
+			\DB::rollBack();
 			return self::getReturnArr(1001,'商品ID：'.$goodDetailArr['product_id'].'添加失败');
 		}
 
 		if($goodDetailArr['sku_info']) {
 			$flag = FaceGoodsSku::query()->insert($goodDetailArr['sku_info']);
 			if(!$flag) {
+				\DB::rollBack();
 				return self::getReturnArr(1001,'商品ID：'.$goodDetailArr['product_id'].'sku添加失败');
 			}
 		}
 
 		if($goodDetailArr['image_info']) {
-			FaceGoodsImage::query()->insert($goodDetailArr['image_info']);
+			$flag = FaceGoodsImage::query()->insert($goodDetailArr['image_info']);
+			if(!$flag) {
+				\DB::rollBack();
+				return self::getReturnArr(1001,'商品ID：'.$goodDetailArr['product_id'].'image添加失败');
+			}
 		}
 
 		if($goodDetailArr['option_info']) {
-			FaceGoodsOption::query()->insert($goodDetailArr['option_info']);
+			$flag = FaceGoodsOption::query()->insert($goodDetailArr['option_info']);
+			if(!$flag) {
+				\DB::rollBack();
+				return self::getReturnArr(1001,'商品ID：'.$goodDetailArr['product_id'].'option添加失败');
+			}
 		}
+
+		\DB::commit();
 
 		return self::getReturnArr(1000,'商品添加成功', ['good_id' => $goodId]);
 	}
