@@ -523,6 +523,31 @@ class ShoplazaService
         return false;
     }
 
+    /**
+     * 更新商品
+     *
+     * @param $shopKey
+     * @param $productId
+     * @param $data
+     */
+    public function putShopifyGoodsBase($shopKey, $productId, $data) {
+        $shopify_web = $this->getShopifyUrl($shopKey);
+        if (empty($shopify_web) || empty($data)) {
+            return false;
+        }
+
+        $url = $shopify_web . '/admin/api/2021-01/products/'.$productId.'.json';
+        try {
+            $res = $this->getShopifyClient(20)->request('POST', $url, ['json' => ['product' => $data]]);
+            $result = json_decode((string)$res->getBody(), true);
+            if ($result['product']['id'] == $productId) {
+                return true;
+            }
+        } catch (\Exception $e) {
+            return false;
+        }
+        return false;
+    }
 
     /**
      * 创建shopify商品

@@ -40,6 +40,14 @@ Route::group(['middleware' => ['cors','multiauth:api']], function () {
     Route::get('/facebook/adaccounts', 'Admin\FacebookController@adaccounts');
     Route::get('/facebook/pixel', 'Admin\FacebookController@adspixels');
     Route::get('/facebook/page', 'Admin\FacebookController@facebookPage');
+
+
+    Route::get('/goods/index', 'Admin\GoodsController@index');
+    Route::get('/goods/detail', 'Admin\GoodsController@detail');
+    Route::get('/goods/image', 'Admin\GoodsController@goods_image');
+    Route::get('/goods/sku', 'Admin\GoodsController@goods_sku');
+    Route::get('/goods/option', 'Admin\GoodsController@goods_option');
+
 });
 
 
