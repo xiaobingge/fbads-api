@@ -64,7 +64,7 @@
 </main>
 <script>
     !function ($) {
-        $('#text').change(function () {
+        $('#text').bind('change focusout mouseout', function () {
             $("#errors").html('');
             var text = $(this).val();
             if (text == '') {
