@@ -55,6 +55,8 @@
 
         <div class="form-group">
             <button type="button" name="submit" disabled="disabled" id="submit_btn" class="btn btn-primary">提交</button>
+            <a href="/shopify/tool" class="btn btn-danger">刷新</a>
+            <span class="red">完事刷新一下页面</span>
         </div>
     </form>
 
@@ -116,22 +118,15 @@
                 data: {type, shop_key, text, async},
                 dataType: "json",
                 success: function (data) {
-                    if (data.code == 1000) {
-                        $('#shop_key option[value="-1"]').attr("selected", true);
-                        $(this).val('');
-                        $("#errors").html('<div class="alert alert-success" role="alert">成功</div>');
-                    } else {
-                        var errHtml = '';
-                        if(Array.isArray(data.msg)) {
-                            for (var i = 0; i < data.msg.length; i++) {
-                                errHtml += '<div class="alert alert-warning" role="alert">' + data.msg[i] + '</div>';
-                            }
-                        } else {
-                            errHtml = '<div class="alert alert-warning" role="alert">' + data.msg + '</div>';
+                    var errHtml = '';
+                    if(Array.isArray(data.msg)) {
+                        for (var i = 0; i < data.msg.length; i++) {
+                            errHtml += '<div class="alert alert-warning" role="alert">' + data.msg[i] + '</div>';
                         }
-                        $("#errors").html(errHtml);
-
+                    } else {
+                        errHtml = '<div class="alert alert-warning" role="alert">' + data.msg + '</div>';
                     }
+                    $("#errors").html(errHtml);
                 }
             })
         });
