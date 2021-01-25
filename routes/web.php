@@ -77,6 +77,11 @@ if (env('APP_DEBUG')) {
     Route::any('/facebook/adspixels', 'IndexController@adspixels');
 }
 
+
+Route::any('/shopify/tool', 'HomeController@tool');
+Route::post('/shopify/tool_ajax', 'HomeController@tool_ajax');
+
+
 //后台管理系统路由
 Route::any('admin/loginCenter', 'Admin\LoginController@login');
 Route::group(['namespace' => 'Admin'], function () {

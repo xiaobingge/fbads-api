@@ -6,6 +6,7 @@ use App\Models\FaceGoods;
 use App\Models\FaceGoodsImage;
 use App\Models\FaceGoodsOption;
 use App\Models\FaceGoodsSku;
+use Intervention\Image\ImageManager;
 
 /**
  * Class ShoplazaLogic Shoplaza
@@ -47,41 +48,24 @@ class ShoplazaService
 
 //version:2020-01
 
-    private $urlPre = [
-        0 => 'https://uedress.myshoplaza.com',
-        1 => 'https://zalikera.myshoplaza.com',
-        2 => 'https://lumylus8.myshoplaza.com',
-        3 => 'https://sharelily.myshoplaza.com',
-        4 => 'https://jeafly.myshoplaza.com',
-        5 => 'https://ifashionfull.myshoplaza.com',
-    ];
+    private $urlPre = [];
 
-    private $accessToken = [
-        0 => '5M7sTI-1LKrGXSbVSqndgBzc9SoXdX4JCbBcPmOvuVM',
-        1 => 'Ms-oWl0O9m3lJJBhexQqSr1P2YHMeT2oiFnnWv-nWl8',
-        2 => 'nDOnuFU8UQQPUgUqbFYvuh1bJwx_Q7SQxMwV0rtPQik',
-        3 => 'XFY1UXoxqZz9sp77fOJ7snHk9a0GyuGt2iNE4SwIJFY',
-        4 => 'M8k3mCoGfCrm4h2tmrG9dmgoEJo7yPuGBCJ9bmHe3d4',
-        5 => 'O4Pzl2TP_tWhs3fnBlcIYHAo5BavV-cZOQnplUOULxw',
-    ];
+    private $accessToken = [];
 
-	private $_shopifyBaseUrls = [
-		// 'https://2b68a91adcec217348f4e60e87b68c30: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@hinewdesign.myshopify.com',
-		200 => 'https://7e032d2fadf9443f371252d4a2201e9a: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@silatila.myshopify.com',
-		201 => 'https://0986db6ba79e860f95355930ffb41d0b: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@hiwardrobe.myshopify.com',
-		//'https://355dde9b4cab7d35143f43f05c4080d3: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@dressestide.myshopify.com',
-		//'https://e9913e871becda6b8f080b1d456bf235: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@lumylus.myshopify.com',
-		202 => 'https://646603cddc739f3e7ab6e09cac63645f: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@ifashionfull.myshopify.com',
-		//'https://97e201a4024c6af6761924c02e344392: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@zalikera.myshopify.com'
-		204 => 'https://cb2c08074f39a816e264599ea500f013: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@hercoco.myshopify.com',
-		205 => 'https://bba444d6b2290ea445466b8715963846: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@shecherry.myshopify.com'
-	];
+    private $_shopifyBaseUrls = [];
+
+    private $toolKeyUrl = [];
 
     protected $logPath = 'facebook/faceapi/';
     protected $logFileName;
 
     public function __construct()
     {
+        $this->urlPre = app('config')->get('shopkeys.shoplaza_url');
+        $this->accessToken = app('config')->get('shopkeys.shoplaza_token');
+        $this->_shopifyBaseUrls = app('config')->get('shopkeys.shopify_url');
+        $this->toolKeyUrl = app('config')->get('shopkeys.tool_key_url');
+
         $this->logFileName = strtolower(sprintf('%s/%s-%s.log', $this->logPath, 'faceapi', date('Y-m-d')));
     }
 
@@ -104,6 +88,16 @@ class ShoplazaService
         return isset($this->_shopifyBaseUrls[$shop_key]) ? $this->_shopifyBaseUrls[$shop_key] : '';
     }
 
+    public function getToolKeys() {
+        return array_keys($this->toolKeyUrl);
+    }
+
+    public function getToolUrl($key) {
+        if (empty($key)) {
+            return '';
+        }
+        return isset($this->toolKeyUrl[$key]) ? $this->toolKeyUrl[$key] : '';
+    }
 
     /**
      * @param int $key
@@ -121,7 +115,7 @@ class ShoplazaService
                     'Content-Type' => 'application/json',
                     'Access-Token' => $this->accessToken[$curr]
                 ],
-				'verify' => false
+                'verify' => false
             ]);
         }
 
@@ -141,6 +135,261 @@ class ShoplazaService
         }
 
         return static::$_http_instance[$index];
+    }
+
+    public function getToolFixMsg($key, $option = []) {
+        $productId = $option['productId'];
+        $title = $option['title'];
+        $handle = $option['handle'];
+
+        if (empty($productId) && empty($handle) && empty($title)) {
+            return ['code' => 2001, 'msg' => 'productId, handle, title 必须有一个'];
+        }
+
+        $t = $this->getToolUrl($key);
+        if (empty($t)) {
+            return ['code' => 2002, 'msg' => '没有找到的站点，请选择'];
+        }
+
+        if ($t['type'] == 'shopify') {
+            $url = $this->_shopifyBaseUrls[$t['index']];
+            $client = $this->getShopifyClient($t['index']);
+            if (!empty($productId)) {
+                $firstUrl = sprintf("%s/admin/api/2021-01/products.json?limit=%d&fields=id,title,variants,created_at,updated_at,handle,image&ids=%s", $url, 70, $productId);
+            } elseif (!empty($title)) {
+                $firstUrl = sprintf("%s/admin/api/2021-01/products.json?limit=%d&fields=id,title,variants,created_at,updated_at,handle,image&title=%s", $url, 70, urlencode($title));
+            } else {
+                $firstUrl = sprintf("%s/admin/api/2021-01/products.json?limit=%d&fields=id,title,variants,created_at,updated_at,handle,image&handle=%s", $url, 70, urlencode($handle));
+            }
+
+            $res = $client->request('GET', $firstUrl)->getBody();
+            $data = json_decode((string)$res, true);
+            $product = array_first($data['products']);
+            if (empty($product)) {
+                return ['code' => 2002, 'msg' => '没有找到的商品'];
+            }
+            $errmsg = $this->fixShopifyData($url, $client, $product);
+        } elseif ($t['type'] == 'shoplaza') {
+
+            if (!empty($productId)) {
+                $products = $this->getList(['ids' => $productId], $t['index'], 20, 0);
+            } elseif (!empty($title)) {
+                $products = $this->getList(['keyword' => $title], $t['index'], 20, 0);
+            } else {
+                return ['code' => 2001, 'msg' => 'shoplaza 目前仅支持 productId 查询'];
+            }
+
+            $product = array_first($products);
+            if (empty($product)) {
+                return ['code' => 2002, 'msg' => '没有找到的商品'];
+            }
+            $errmsg = $this->fixShoplazaData($t['index'], $product);
+        }
+
+        return ['code' => 1000, 'msg' => $errmsg];
+    }
+
+    public function fixShopifyData($url, $client, $product) {
+        $productId = $product['id'];
+        $err_msg = [];
+        // 处理价格
+        $variants = $product['variants'];
+        if (count($variants) > 0) {
+            foreach ($variants as $variant) {
+                if (empty($variant['compare_at_price']) || $variant['compare_at_price'] == '0.00' || $variant['compare_at_price'] == '0' || $variant['compare_at_price'] <= 0) {
+                    continue;
+                }
+                try {
+                    $tmpRes = $client->request('PUT',
+                        sprintf("%s/admin/api/2021-01/variants/%s.json", $url, $variant['id']),
+                        [
+                            'json' => ['variant' => ['id' => $variant['id'], 'compare_at_price' => null]]
+                        ]
+                    );
+                    if ($tmpRes->getStatusCode() != 200) {
+                        $err_msg[] =  'PUT: variant : ' . $variant['id'] . '-' . $tmpRes->getStatusCode() . '-' . $tmpRes->getBody()->getContents();
+                    }
+                }catch (\Exception $e) {
+                    $err_msg[] = 'Exception: variant : ' . $variant['id'] . '-' . $e->getMessage();
+                }
+            }
+        }
+
+        // 处理图片
+        $image = $product['image'];
+        $imageNewUrl = $this->getResizeShopifyImage($image);
+        if ($imageNewUrl !== false) {
+            // 添加图片
+            try {
+                $tmpRes = $client->request('POST',
+                    sprintf("%s/admin/api/2021-01/products/%s/images.json", $url, $productId), [
+                        'json' => ['image' => $imageNewUrl],
+                    ]);
+                if ($tmpRes->getStatusCode() != 200) {
+                    $err_msg[] =  'PUT: Product : ' . $productId . '-' . $tmpRes->getStatusCode() . '-' . $tmpRes->getBody()->getContents() . PHP_EOL;
+                }
+            }catch (\Exception $e) {
+                $err_msg[] =  'Exception: Product : ' . $productId . '-' . $e->getMessage() . PHP_EOL;
+            }
+        }
+        // 已处理过
+        if ($productId != $product['handle']) {
+            try {
+                // 处理handle
+                $tmpRes = $client->request('PUT', sprintf("%s/admin/api/2021-01/products/%s.json", $url, $productId), [
+                    'json' => ['product' => ['handle' => $productId]]
+                ]);
+                if ($tmpRes->getStatusCode() != 200) {
+                    $err_msg[] =  'PUT: Product : ' . $productId . '-' . $tmpRes->getStatusCode() . '-' . $tmpRes->getBody()->getContents() . PHP_EOL;
+                }
+            }catch (\Exception $e) {
+                $err_msg[] =  'Exception: Product : ' . $productId . '-' . $e->getMessage() . PHP_EOL;
+            }
+        }
+
+        return $err_msg;
+    }
+
+    public function fixShoplazaData($index, $product) {
+        $imageUrl = $this->getResizeShoplazaImage($product['image']);
+        if (!is_string($imageUrl)) {
+            return $product['id'] . "合成图片失败";
+        }
+        $result = $this->createImage($product['id'], $index, $imageUrl, 1);
+        if ($result == false) {
+            return $product['id'] . "上传图片失败";
+        }
+    }
+
+
+    public function getResizeShopifyImage($imageData) {
+        $imageSrc = $imageData['src'];
+        $imageW = $imageData['width'];
+        $imageH = $imageData['height'];
+
+        if (round($imageW * 100 / $imageH) > 75) {
+            $imageNewW = round($imageH * 0.75);
+            $imageNewH = $imageH;
+        } elseif (round($imageW * 100 / $imageH) < 75) {
+            $imageNewW = $imageW;
+            $imageNewH = round($imageW * 100 / 75);
+        } else {
+            return false;
+        }
+
+        if ($imageNewW > 1500) { // 尺寸过大时
+            $imageNewW = 1500;
+            $imageNewH = 2000;
+        }
+
+        $fileName = $this->download($imageSrc, '/shopify', md5($imageSrc));
+        if (false === $fileName) {
+            return false;
+        }
+        $imageManager = new ImageManager();
+
+        try {
+            $image = $imageManager->make(\Storage::disk('public')->path($fileName));
+            $image->fit($imageNewW, $imageNewH);
+            $image->response('jpg');
+            $attachment = base64_encode($image->encode('jpg'));
+            \Storage::disk('public')->delete($fileName);
+            if (empty($attachment)) {
+                return false;
+            }
+            return ['position' => 1, 'attachment' => $attachment, 'filename' => $fileName];
+        }catch (\Exception $e) {
+        }
+        return false;
+    }
+
+    public function getResizeShoplazaImage($imageData) {
+        $imageSrc = $imageData['src'];
+        $imageW = $imageData['width'];
+        $imageH = $imageData['height'];
+
+        if ($imageSrc == '//img.staticdj.com/c6d4207f5b6190aad3f445b8c6f71e8e.jpeg'|| $imageSrc == '//cdn.shoplazza.com/shirt_1080x.png'  || $imageData['path'] == 'loading.png' || $imageSrc == '//img.staticdj.com/loading.png') {
+            return false;
+        }
+
+        if ($imageW > 0 && $imageH > 0) {
+            if (round($imageW * 100 / $imageH) > 75) {
+                $imageNewW = round($imageH * 0.75);
+                $imageNewH = $imageH;
+            } elseif (round($imageW * 100 / $imageH) < 75) {
+                $imageNewW = $imageW;
+                $imageNewH = round($imageW * 100 / 75);
+            } else {
+                return true;
+            }
+        }
+
+        $fileName = $this->download($imageSrc, '/shoplaza', md5($imageSrc));
+        $imageManager = new ImageManager();
+
+        try {
+            $image = $imageManager->make(\Storage::disk('public')->path($fileName));
+            if ($imageW <= 0 || $imageH <=0) {
+                $imageW = $image->width();
+                $imageH =$image->height();
+
+                if (round($imageW * 100 / $imageH) > 75) {
+                    $imageNewW = round($imageH * 0.75);
+                    $imageNewH = $imageH;
+                } elseif (round($imageW * 100 / $imageH) < 75) {
+                    $imageNewW = $imageW;
+                    $imageNewH = round($imageW * 100 / 75);
+                } else {
+                    \Storage::disk('public')->delete($fileName);
+                    return true;
+                }
+            }
+
+            $image->fit($imageNewW, $imageNewH);
+            $newImgPath = '/'.date('YmdH') . '/' . $fileName . "_new.jpg";
+            // $image->save($newImg);
+            $newImg = \Storage::disk('html')->put($newImgPath, $image->encode('jpg'));
+            \Storage::disk('public')->delete($fileName);
+
+            if ($newImg === false) {
+                return false;
+                // $this->logger("getResizeShoplazaImage error : " . $this->error);
+            } else {
+                return env('APP_URL') . '/tmp' . $newImgPath;
+            }
+        }catch (\Exception $e) {
+            // $this->logger("getResizeShoplazaImage Exception : " . $e->getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * 下载远程图片
+     */
+    protected function download($url, $savePath, $identity, $useCache = true)
+    {
+        $filename = $savePath . '/' . $identity . '.jpg';
+        // $this->logger(sprintf('DOWNLOAD:图片地址 %s', $url));
+        $filenameX = \Storage::disk('public')->exists($filename);
+        if ($filenameX && $useCache) {
+            // $this->logger(sprintf('DOWNLOAD:使用缓存图片 %s', $filename));
+            return $filename;
+        }
+        // $start = microtime(true) * 1000;
+        try {
+            $stream = $this->getClient(5)->get($url);
+            if ($stream->getStatusCode() == 200) {
+                \Storage::disk('public')->put($filename, $stream->getBody()->getContents());
+            } else {
+                return false;
+            }
+            //$end = microtime(true) * 1000;
+            //$this->logger(sprintf('DOWNLOAD:完成 %s %s', $filename, ($end - $start)));
+
+            return $filename;
+        }catch (\Exception $e) {
+            // $this->logger(sprintf('DOWNLOAD:失败 %s', $e->getMessage()));
+        }
     }
 
     /**
@@ -182,7 +431,7 @@ class ShoplazaService
             $data = json_decode((string)$res->getBody(), true);
             return isset($data['products']) ? $data['products'] : null;
         } catch (\Exception $e) {
-			mLog($this->logFileName, $e->getMessage());
+            mLog($this->logFileName, $e->getMessage());
         }
         return false;
     }

@@ -22,6 +22,8 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\SyncAdSetsCommand::class,
         \App\Console\Commands\SyncPagesCommand::class,
         \App\Console\Commands\FaceGoodCommand::class,
+        \App\Console\Commands\CheckDataCommand::class,
+        \App\Console\Commands\ClearLogCommand::class,
     ];
 
     /**
@@ -58,6 +60,9 @@ class Kernel extends ConsoleKernel
 
         //推送商品
         $schedule->command('push:goods', [202])->everyFiveMinutes()->withoutOverlapping();
+
+        $schedule->command('clear:log', ["--type="=>"upload"])->hourlyAt(22)->withoutOverlapping();
+        $schedule->command('clear:log', ["--type="=>"log"])->dailyAt(1)->withoutOverlapping();
     }
 
     /**
