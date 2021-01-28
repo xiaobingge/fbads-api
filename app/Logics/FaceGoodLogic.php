@@ -18,6 +18,10 @@ class FaceGoodLogic {
 		501 => 'https://www.rinkpad.com/'
 	];
 
+	private $_filterKeyArr = [
+		'dalaline'
+	];
+
 	/**
 	 * 获取待采集数据
 	 * @param int $limit
@@ -147,7 +151,7 @@ class FaceGoodLogic {
 			$goodDetailArr = self::formatGoodData_502($goodDetailArr);
 		}
 
-		$goodDetailArr['detail_desc'] = $detailDesc;
+		$goodDetailArr['detail_desc'] = str_replace($this->_filterKeyArr, '', $detailDesc);
 
 		$return = $this->insertCollectGoodData($goodDetailArr, $site, $jpId, $collectId, $priceCurrency);
 		return $return;
