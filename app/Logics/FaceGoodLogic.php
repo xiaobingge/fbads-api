@@ -22,6 +22,14 @@ class FaceGoodLogic {
 		'dalaline'
 	];
 
+    /**
+     * @return string[]
+     */
+    public function getFilterKeyArr(): array
+    {
+        return $this->_filterKeyArr;
+    }
+
 	/**
 	 * 获取待采集数据
 	 * @param int $limit

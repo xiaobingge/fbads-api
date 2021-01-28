@@ -1,5 +1,6 @@
 <?php
 namespace App\Services;
+use App\Logics\FaceGoodLogic;
 use Illuminate\Support\Facades\Redis;
 use App\Models\FaceGoodsRs;
 use App\Models\FaceGoods;
@@ -392,6 +393,189 @@ class ShoplazaService
         }
     }
 
+
+
+    public function getCommandFixFilter($key, $filter, $option = []) {
+        $productId = $option['productId'];
+        $title = $option['title'];
+        $handle = $option['handle'];
+
+        $where = [];
+
+        $t = $this->getToolUrl($key);
+        if (empty($t)) {
+            return ['code' => 2002, 'msg' => '没有找到的站点，请选择'];
+        }
+
+        if ($t['type'] == 'shopify') {
+            $url = $this->_shopifyBaseUrls[$t['index']];
+            $client = $this->getShopifyClient($t['index']);
+            $where = [];
+            if (!empty($product)) {
+                $where['ids'] = $productId;
+            }
+            if (!empty($title)) {
+                $where['keyword'] = $title;
+            }
+            if (!empty($handle)) {
+                $where['handle'] = $handle;
+            }
+
+            $firstUrl = sprintf("%s/admin/api/2021-01/products.json?limit=%d&fields=id,title,body_html,tags&%s", $url, 70, http_build_query($where));
+            $this->getCommandFixFilterShopify($client, $url, $firstUrl, $filter);
+
+        } elseif ($t['type'] == 'shoplaza') {
+            if (!empty($product)) {
+                $where['ids'] = $productId;
+            }
+            if (!empty($title)) {
+                $where['keyword'] = $title;
+            }
+            $count = $this->getCount($where, $t['index']);
+            $pageSize = 20;
+            $page = 0;
+            $maxPage = ceil($count / $pageSize);
+
+            $tmpKey = 'com.juanpi.shell7.shoplaza.'  . $t['index'];
+            $redis = Redis::connection();
+
+            do {
+                $products = $this->getList($where, $t['index'], $pageSize, $page, ['id', 'title', 'handle', 'description']);
+                if (!empty($products)) {
+                    foreach ($products as $product) {
+                        $productId = $product['id'];
+                        if ($redis->hexists($tmpKey, $productId)) {
+                            continue;
+                        }
+
+                        $postData = [];
+
+                        $title = $product['title'];
+                        if (strpos($title, $filter) !== false) {
+                            $postData['title'] = str_replace($filter, '', $title);
+                        }
+
+                        $description = $product['description'];
+                        if (strpos($description, $filter) !== false) {
+                            $postData['description'] = str_replace($filter, '', $description);
+                        }
+
+                        $handle = $product['handle'];
+                        if (strpos($handle, $filter) !== false) {
+                            $postData['handle'] = str_replace($filter, '', $handle);
+                        }
+
+                        if (empty($postData)) {
+                            $redis->hSet($tmpKey, $productId, 1);
+                            $redis->expire($tmpKey, 864000); // 10天
+                            continue;
+                        }
+
+                        echo 'Shoplaza Product : ' . $productId . '需要修改' . implode(',', array_keys($postData)) . PHP_EOL;
+                        mLog($this->logFileName, $productId. '修改的数据' . json_encode($postData));
+
+                        $tmpRes = $this->updateData($productId, $t['index'], $postData);
+                        if (false === $tmpRes) {
+                            $redis->hSet($tmpKey . '.error', $productId, 1);
+                            $redis->expire($tmpKey . '.error', 864000); // 10天
+                            echo 'Shoplaza Product : ' . $productId . PHP_EOL;
+                        }
+
+                        $redis->hSet($tmpKey, $productId, 1);
+                        $redis->expire($tmpKey, 864000); // 10天
+                    }
+                }
+                $page++;
+            } while ($page <= $maxPage);
+        }
+
+    }
+
+
+    private function getCommandFixFilterShopify($client, $baseUrl, $url, $filter)
+    {
+        echo date('c') . "|type:|".$filter."|url:".$url . PHP_EOL;
+        $res = $client->get($url);
+        $resHeaderLink = $res->getHeader("link");
+        $nextPageUrl = "";
+
+        if (mb_strlen($resHeaderLink[0]) > 0) {
+            $resHeaderLinkArr = explode(",", $resHeaderLink[0]);
+            if (count($resHeaderLinkArr) > 1) {
+                $item = trim($resHeaderLinkArr[1]);
+            } else {
+                $item = trim($resHeaderLinkArr[0]);
+            }
+            $itemArr = explode(";", $item);
+            if (trim($itemArr[1]) == "rel=\"next\"") {
+                $nextPageUrl = mb_strcut($itemArr[0], 1, mb_strlen($itemArr[0]) - 2);
+                $baseUrlArr = explode('@', $baseUrl);
+                $nextPageUrl = str_replace('https://' . $baseUrlArr[1], $baseUrl, $nextPageUrl);
+            }
+        }
+        echo "date : " . date('c') . " NextPageUrl : " . $nextPageUrl . PHP_EOL;
+        $content = json_decode($res->getBody(), true);
+        $md5BaseUrl = md5($baseUrl);
+        $tmpKey = 'com.juanpi.shell7.shopify.'  . $md5BaseUrl;
+        $redis = Redis::connection();
+        foreach ($content['products'] as $product) {
+            $productId = $product['id'];
+            // 已处理过
+            if ($redis->hexists($tmpKey, $productId)) {
+                continue;
+            }
+
+            $postData = [];
+
+            $title = $product['title'];
+            if (strpos($title, $filter) !== false) {
+                $postData['title'] = str_replace($filter, '', $title);
+            }
+
+            $body_html = $product['body_html'];
+            if (strpos($body_html, $filter) !== false) {
+                $postData['body_html'] = str_replace($filter, '', $body_html);
+            }
+
+            if (strpos($product['tags'], $filter) !== false) {
+                $postData['tags'] = str_replace($filter, '', $product['tags']);
+                $tags = array_filter(explode(',', $postData['tags']));
+                $postData['tags'] = implode(',', $tags);
+            }
+
+            if (empty($postData)) {
+                $redis->hSet($tmpKey, $productId, 1);
+                $redis->expire($tmpKey, 864000); // 10天
+                continue;
+            }
+            echo 'Shopify Product : ' . $productId . '需要修改' . implode(',', array_keys($postData)) . PHP_EOL;
+            mLog($this->logFileName, $productId. '修改的数据' . json_encode($postData));
+
+            try {
+                // 处理handle
+                $tmpRes = $client->request('PUT', sprintf("%s/admin/api/2021-01/products/%s.json", $baseUrl, $productId), [
+                    'json' => ['product' => $postData]
+                ]);
+                if ($tmpRes->getStatusCode() != 200) {
+                    $redis->hSet($tmpKey . '.error', $productId, 1);
+                    $redis->expire($tmpKey . '.error', 864000); // 10天
+                    echo 'Product : ' . $productId . '-' . $tmpRes->getStatusCode() . '-' . $tmpRes->getBody()->getContents() . PHP_EOL;
+                }
+                $redis->hSet($tmpKey, $productId, 1);
+                $redis->expire($tmpKey, 864000); // 10天
+            }catch (\Exception $e) {
+                echo 'Product : ' . $productId . '-' . $e->getMessage() . PHP_EOL;
+            }
+        }
+
+        if (!empty($nextPageUrl)) {
+            usleep(500);
+            $this->getCommandFixFilterShopify($client, $baseUrl, $nextPageUrl, $filter);
+        }
+    }
+
+
+
     /**
      * 商品总数量
      * @param $where
@@ -421,11 +605,15 @@ class ShoplazaService
      * @param int $limit
      * @param int $page
      * @param int $curr
+     * @param array $fields
      * @return bool|mixed|null
      */
-    public function getList($where, $curr = 0, $limit = 20, $page = 1)
+    public function getList($where, $curr = 0, $limit = 20, $page = 1, $fields = [])
     {
-        $url = $this->urlPre[$curr] . '/openapi/2020-01/products.json?fields=id,title,created_at,updated_at,handle,need_variant_image,image,images,variants&limit='.$limit.'&page=' . $page . '&' . http_build_query($where);
+        if (empty($fields)) {
+            $fields = ['id','title','created_at','updated_at','handle','need_variant_image','image','images','variants'];
+        }
+        $url = $this->urlPre[$curr] . '/openapi/2020-01/products.json?fields='. implode(',', $fields) .'&limit='.$limit.'&page=' . $page . '&' . http_build_query($where);
         try {
             $res = $this->getClient(11, $curr)->request('GET', $url);
             $data = json_decode((string)$res->getBody(), true);
@@ -845,6 +1033,9 @@ class ShoplazaService
             } while (true);
         }
 
+        // 需要过滤的关键字
+        $filterKey = app(FaceGoodLogic::class)->getFilterKeyArr();
+
         while (true) {
             if (!empty($products)) {
                 $product_id = array_pop($products);
@@ -865,7 +1056,7 @@ class ShoplazaService
             }
 
             $postData = [
-                'title' => $goods_info->title,
+                'title' => str_replace($filterKey, '', $goods_info->title),
                 'published' => false,
                 'vendor' => $goods_info->vendor,
                 'handle' => $goods_info->handle,
@@ -873,9 +1064,9 @@ class ShoplazaService
             ];
 
             if (!empty($goods_info->content)) {
-                $postData['body_html'] = htmlspecialchars_decode($goods_info->content);
+                $postData['body_html'] = str_replace($filterKey, '', htmlspecialchars_decode($goods_info->content));
             } elseif (!empty($goods_info->description)) {
-                $postData['body_html'] = htmlspecialchars_decode($goods_info->description);
+                $postData['body_html'] = str_replace($filterKey, '', htmlspecialchars_decode($goods_info->description));
             } else {
                 $postData['body_html'] = '';
             }
@@ -914,7 +1105,7 @@ class ShoplazaService
                 ];
 
                 if (!empty($skuinfo->title)) {
-                    $variant['title'] = $skuinfo->title;
+                    $variant['title'] = str_replace($filterKey, '', $skuinfo->title);
                 } else {
                     $option_array = array_filter([$skuinfo->option1, $skuinfo->option2, $skuinfo->option3]);
                     if (!empty($option_array)) {
