@@ -450,19 +450,19 @@ class ShoplazaService
 
                         $postData = [];
 
-                        $title = $product['title'];
-                        if (strpos($title, $filter) !== false) {
-                            $postData['title'] = str_replace($filter, '', $title);
+                        $title = str_replace($filter, '', $product['title']);
+                        if ($title != $product['title']) {
+                            $postData['title'] = $title;
                         }
 
-                        $description = $product['description'];
-                        if (strpos($description, $filter) !== false) {
-                            $postData['description'] = str_replace($filter, '', $description);
+                        $description = str_replace($filter, '', $product['description']);
+                        if ($description != $product['description']) {
+                            $postData['description'] = $description;
                         }
 
-                        $handle = $product['handle'];
-                        if (strpos($handle, $filter) !== false) {
-                            $postData['handle'] = str_replace($filter, '', $handle);
+                        $handle = str_replace($filter, '', $product['handle']);
+                        if ($handle != $product['handle']) {
+                            $postData['handle'] = $handle;
                         }
 
                         if (empty($postData)) {
@@ -527,19 +527,19 @@ class ShoplazaService
 
             $postData = [];
 
-            $title = $product['title'];
-            if (strpos($title, $filter) !== false) {
-                $postData['title'] = str_replace($filter, '', $title);
+            $title = str_replace($filter, '', $product['title']);
+            if ($title != $product['title']) {
+                $postData['title'] = $title;
             }
 
-            $body_html = $product['body_html'];
-            if (strpos($body_html, $filter) !== false) {
-                $postData['body_html'] = str_replace($filter, '', $body_html);
+            $body_html = str_replace($filter, '', $product['body_html']);
+            if ($body_html != $product['body_html']) {
+                $postData['body_html'] = $body_html;
             }
 
-            if (strpos($product['tags'], $filter) !== false) {
-                $postData['tags'] = str_replace($filter, '', $product['tags']);
-                $tags = array_filter(explode(',', $postData['tags']));
+            $tags = str_replace($filter, '', $product['tags']);
+            if ($tags != $product['tags']) {
+                $tags = array_filter(explode(',', $tags));
                 $postData['tags'] = implode(',', $tags);
             }
 
