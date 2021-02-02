@@ -2,25 +2,26 @@
 
 namespace App\Console\Commands;
 
+use App\Logics\FaceCollectLogic;
 use App\Logics\FaceGoodLogic;
 use Illuminate\Support\Facades\Redis;
 
 
-class FaceGoodCommand extends BaseCommand
+class FaceCollectCommand extends BaseCommand
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'faceGood:cai {--id=} ';
+    protected $signature = 'faceCollect:cai {--id=} ';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = '采集商品信息 ';
+    protected $description = '采集专辑对应商品信息 ';
 
     /**
      * Execute the console command.
@@ -29,15 +30,15 @@ class FaceGoodCommand extends BaseCommand
      */
     public function handle() {
 		$id = $this->option('id');
-		$faceGoodLogic = new FaceGoodLogic();
-		$return  = $faceGoodLogic->getGoodList(2, $id);
+		$faceCollectLogic = new FaceCollectLogic();
+		$return  = $faceCollectLogic->getCollectList(1, $id);
 		if(empty($return['data'])) {
 			echo '没有要采集的数据'.PHP_EOL;
 			return false;
 		}
 
-		foreach($return['data'] as $good) {
-			$urlMd5 = md5($good['fc_url']);
+		foreach($return['data'] as $collect) {
+			$urlMd5 = md5($collect['fcc_url']);
 			if(Redis::exists($urlMd5)) {
 				continue;
 			}
@@ -45,15 +46,11 @@ class FaceGoodCommand extends BaseCommand
 			Redis::set($urlMd5, 1);
 			Redis::expire($urlMd5, 300);
 
-			$isSuccess = 2;
-			$return = $faceGoodLogic->insertGoodInfo($good['fc_url'], $good['fc_site'], $good['fc_id'], 0);
+			$return = $faceCollectLogic->getGoodUrlByCollectUrl($collect['fcc_url']);
 			echo json_encode($return, JSON_UNESCAPED_UNICODE).PHP_EOL;
 
-			if($return['code'] == 1000) {
-				$isSuccess = 1;
-			}
-			//同步更新采集状态
-			$return = $faceGoodLogic->updateGoodInfo($good['fc_id'], ['fc_status'=>$isSuccess]);
+			//添加采集到的商品链接
+			$return = $faceCollectLogic->insertGoodUrl($collect['fcc_id'], $return['data']);
 			echo json_encode($return, JSON_UNESCAPED_UNICODE).PHP_EOL;
 
 			Redis::del($urlMd5);
@@ -63,12 +60,13 @@ class FaceGoodCommand extends BaseCommand
 
     }
 
-    public function test() {
-    	$url = 'https://www.onevise.com/products/gymgrace-bra-op-gs-50-5401967.html';
-		$faceGoodLogic = new FaceGoodLogic();
-		$return  = $faceGoodLogic->insertGoodInfo($url, 500, 0, 0);
-		dump($return);
-		die;
+
+    public function  test() {
+		$faceCollectLogic = new FaceCollectLogic();
+		$url = "https://www.rinkpad.com/collections/track-pants-54757/";
+		$return = $faceCollectLogic->getGoodUrlByCollectUrl($url);
+
+		dump($return);die;
 	}
 
 }

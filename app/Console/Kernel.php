@@ -24,6 +24,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\FaceGoodCommand::class,
         \App\Console\Commands\CheckDataCommand::class,
         \App\Console\Commands\ClearLogCommand::class,
+        \App\Console\Commands\FaceCollectCommand::class,
     ];
 
     /**
@@ -57,6 +58,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('sync:ad-insights')->hourlyAt(41)->between('8:00', '23:00')->withoutOverlapping();
         //采集商品
         $schedule->command('faceGood:cai')->everyMinute()->withoutOverlapping();
+        $schedule->command('faceCollect:cai')->everyMinute()->withoutOverlapping();
 
         //推送商品
         $schedule->command('push:goods', [202])->everyFiveMinutes()->withoutOverlapping();
