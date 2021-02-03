@@ -105,7 +105,10 @@ class FaceGoodLogic {
 			return self::getReturnArr(1003, '获取页面信息错误');
 		}
 
-		if(strripos($return['data'], '404 | Page Not Found') !== false){
+		if(
+			strripos($return['data'], '404 | Page Not Found') !== false
+			|| strripos($return['data'], '404 Page Not Found') !== false
+		){
 			return self::getReturnArr(-1, '商品已经下架');
 		}
 
@@ -150,11 +153,11 @@ class FaceGoodLogic {
 			$goodDetailArr = $goodFormatModel->formatGoodData($site, $goodDetailArr, $return['data'], $url);
 		}
 
-		$goodDetailArr['detail_desc'] = str_replace($this->_filterKeyArr, '', $detailDesc);
-
-		if(empty($goodDetailArr)) {
+		if(empty($goodDetailArr)){
 			return self::getReturnArr(1006,'组合商品详细信息失败');
 		}
+
+		$goodDetailArr['detail_desc'] = str_replace($this->_filterKeyArr, '', $detailDesc);
 
 		$priceCurrency = 'USD';
 		preg_match('/"priceCurrency":\s*"(.*?)"/im', $return['data'], $match);

@@ -13,7 +13,7 @@ class FaceGoodCommand extends BaseCommand
      *
      * @var string
      */
-    protected $signature = 'faceGood:cai {--id=} ';
+    protected $signature = 'faceGood:cai {--id=} {--debug=}';
 
     /**
      * The console command description.
@@ -29,6 +29,11 @@ class FaceGoodCommand extends BaseCommand
      */
     public function handle() {
 		$id = $this->option('id');
+		$debug = $this->option('debug');
+		if($debug) {
+			$this->test();
+		}
+
 		$faceGoodLogic = new FaceGoodLogic();
 		$return  = $faceGoodLogic->getGoodList(6, $id);
 		if(empty($return['data'])) {
@@ -62,7 +67,7 @@ class FaceGoodCommand extends BaseCommand
 
     public function test() {
     	//$url = 'https://www.soulmiacollection.com/mock-collar-cow-print-shift-product50727.html';
-    	$url = 'https://www.rinkpad.com/products/mens-fashion-check-coat-5317687.html?from=newin';
+    	$url = 'https://www.ageluville.com/collections/pants/products/casual-lightning-print-joggers';
 		$faceGoodLogic = new FaceGoodLogic();
 		$return  = $faceGoodLogic->insertGoodInfo($url, 500, 0, 0);
 		dump($return);

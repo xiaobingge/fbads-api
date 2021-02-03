@@ -313,16 +313,27 @@ class GoodFormatLogic  {
 		}
 
 		$title = $titleMatch[1];
+		$isHasColor = 1;
 		//得到sku图片信息
 		preg_match_all('/#callBackVariant\s*\.bg_color_(?<colors>.*?)\s*\{\s*background-image:\s*url\((?<imageUrls>.*?)\);\s*\}/ism', $htmlStr, $skuImageMatch);
 		if(empty($skuImageMatch['colors']) || empty($skuImageMatch['imageUrls'])) {
-			return [];
+			 //匹配一个图片
+			preg_match_all('/<div\s*class="product-single__thumbnail-image"\s*style="padding-top:(?:.*?)%;background-image:url\((?<imageUrls>.*?)\);/', $htmlStr, $skuImageMatch);
+			if(empty($skuImageMatch['imageUrls'])) {
+				return [];
+			}
+			$isHasColor = 0;
 		}
 
+		//如果没有颜色属性，就定义通用颜色common color
 		$skuImgArr = [];
-		foreach($skuImageMatch['colors'] as $j=>$color) {
-			$color = strtolower(str_replace(['-'], '', $color));
-			$skuImgArr[$color] = 'https:'.str_replace('118x', '360x', $skuImageMatch['imageUrls'][$j]);
+		if($isHasColor) {
+			foreach($skuImageMatch['colors'] as $j=>$color) {
+				$color = strtolower(str_replace(['-'], '', $color));
+				$skuImgArr[$color] = 'https:'.str_replace('118x', '360x', $skuImageMatch['imageUrls'][$j]);
+			}
+		}else {
+			$skuImgArr['commoncolor'] = 'https:'.$skuImageMatch['imageUrls'][0];
 		}
 
 		$goodDetailArr['id'] = $goodArr['product']['id'];
@@ -339,7 +350,15 @@ class GoodFormatLogic  {
 		$totalStockNum = 0;
 		$goodImageArr = [];
 		foreach($goodArr['product']['variants'] as $key=>$sku) {
-			$colorArr = array_filter(explode('/', $sku['public_title']));
+			if($isHasColor) {
+				$colorArr = array_filter(explode('/', $sku['public_title']));
+			}else {
+				$colorArr = [
+					'common color',
+					$sku['public_title']
+				];
+			}
+
 			$color = strtolower(preg_replace('/\s*/', '', $colorArr[0]));
 			$skuImage = $skuImgArr[$color];
 
