@@ -1001,6 +1001,8 @@ class ShoplazaService
         }
         $shoplaza_key = 'redis_goods_list_shopify_' . $shop_key;
         $shoplaza_faile_key = 'redis_goods_list_faile_shopify_list';
+        // 失败次数
+        $shoplaza_faile_hash = 'redis_goods_list_faile_shopify_hash';
         $shoplaza_max_key = 'redis_goods_max_shopify_' . $shop_key;
         $redis = Redis::connection('default');
         if (empty($products)) {
@@ -1046,6 +1048,14 @@ class ShoplazaService
             if (empty($product_id)) {
                 break;
             }
+
+            $fail_try_cnt = $redis->hget($shoplaza_faile_hash, $product_id);
+            if ($fail_try_cnt >= 3) {
+                // 已经失败3次了，放弃治疗;
+                mLog($this->logFileName.'_fail.txt', $product_id . 'upload falid : try num : ' . $fail_try_cnt);
+                continue;
+            }
+
             //首先查找是否已经上传到对应网站
             if(FaceGoodsRs::where('shop_index', $shopify_web)->where('resource_product_id', $product_id)->exists()){
                 continue;
@@ -1193,8 +1203,7 @@ class ShoplazaService
             try {
                 $res = $this->getShopifyClient(20)->request('POST', $url, ['json' => ['product' => $postData]]);
                 $result = json_decode((string)$res->getBody(), true);
-                echo $result['product']['id'] . '-' . $result['product']['handle'] . PHP_EOL;
-                mLog($this->logFileName, print_r($result, true));
+                mLog($this->logFileName, $result['product']['id'] . '-' . $result['product']['handle']);
                 // 入库，写关联关系
                 FaceGoodsRs::firstOrCreate([
                     'resource_product_id' => $product_id,
@@ -1203,10 +1212,15 @@ class ShoplazaService
                     'type' => $shop_key,
                     'shop_index' => $shopify_web
                 ]);
+                $redis->hdel($shoplaza_faile_hash, $product_id);
                 // $this->updateImage($result['product'],$sku_list,$image_list);
                 $cnt_success ++;
             } catch (\Exception $e) {
-                $redis->rPush($shoplaza_faile_key, $product_id);
+                if ($fail_try_cnt < 3) {
+                    // 如果重试少于3次 ，写入失败队列正
+                    $redis->rPush($shoplaza_faile_key, $product_id);
+                }
+                $redis->hincrby($shoplaza_faile_hash, $product_id, 1);
                 mLog($this->logFileName, $product_id.'========='.$e->getMessage());
                 $cnt_faile ++;
                 continue;
