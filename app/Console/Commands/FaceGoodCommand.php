@@ -52,8 +52,10 @@ class FaceGoodCommand extends BaseCommand
 			if($return['code'] == 1000) {
 				$isSuccess = 1;
 			}
+
+
 			//同步更新采集状态
-			$return = $faceGoodLogic->updateGoodInfo($good['fc_id'], ['fc_status'=>$isSuccess]);
+			$return = $faceGoodLogic->updateGoodInfo($good['fc_id'], ['fc_status'=>$isSuccess,'fc_modify'=>date('Y-m-d H:i:s')]);
 			echo json_encode($return, JSON_UNESCAPED_UNICODE).PHP_EOL;
 
 			Redis::del($urlMd5);
@@ -64,7 +66,8 @@ class FaceGoodCommand extends BaseCommand
     }
 
     public function test() {
-    	$url = 'https://www.onevise.com/products/gymgrace-bra-op-gs-50-5401967.html';
+    	$url = 'https://www.soulmiacollection.com/car-graphic-print-round-neck-product25853.html';
+    	//$url = 'https://www.ageluville.com/collections/hoodies-sweatshirts/products/fashion-casual-happy-smiley-face-print-hoodie';
 		$faceGoodLogic = new FaceGoodLogic();
 		$return  = $faceGoodLogic->insertGoodInfo($url, 500, 0, 0);
 		dump($return);
