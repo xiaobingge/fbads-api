@@ -30,7 +30,7 @@ class FaceGoodCommand extends BaseCommand
     public function handle() {
 		$id = $this->option('id');
 		$faceGoodLogic = new FaceGoodLogic();
-		$return  = $faceGoodLogic->getGoodList(2, $id);
+		$return  = $faceGoodLogic->getGoodList(6, $id);
 		if(empty($return['data'])) {
 			echo '没有要采集的数据'.PHP_EOL;
 			return false;
@@ -45,14 +45,10 @@ class FaceGoodCommand extends BaseCommand
 			Redis::set($urlMd5, 1);
 			Redis::expire($urlMd5, 300);
 
-			$isSuccess = 2;
 			$return = $faceGoodLogic->insertGoodInfo($good['fc_url'], $good['fc_site'], $good['fc_id'], 0);
+			echo $good['fc_url'].PHP_EOL;
 			echo json_encode($return, JSON_UNESCAPED_UNICODE).PHP_EOL;
-
-			if($return['code'] == 1000) {
-				$isSuccess = 1;
-			}
-
+			$isSuccess = $return['code'] == 1000 ? 1 : ($return['code'] == -1 ? 3 : 2);
 
 			//同步更新采集状态
 			$return = $faceGoodLogic->updateGoodInfo($good['fc_id'], ['fc_status'=>$isSuccess,'fc_modify'=>date('Y-m-d H:i:s')]);
@@ -62,12 +58,11 @@ class FaceGoodCommand extends BaseCommand
 		}
 
 		echo '脚本执行完成'.PHP_EOL;
-
     }
 
     public function test() {
-    	$url = 'https://www.soulmiacollection.com/car-graphic-print-round-neck-product25853.html';
-    	//$url = 'https://www.ageluville.com/collections/hoodies-sweatshirts/products/fashion-casual-happy-smiley-face-print-hoodie';
+    	//$url = 'https://www.soulmiacollection.com/mock-collar-cow-print-shift-product50727.html';
+    	$url = 'https://www.rinkpad.com/products/mens-fashion-check-coat-5317687.html?from=newin';
 		$faceGoodLogic = new FaceGoodLogic();
 		$return  = $faceGoodLogic->insertGoodInfo($url, 500, 0, 0);
 		dump($return);
