@@ -35,7 +35,7 @@ class FaceGoodCommand extends BaseCommand
 		}
 
 		$faceGoodLogic = new FaceGoodLogic();
-		$return  = $faceGoodLogic->getGoodList(6, $id);
+		$return  = $faceGoodLogic->getGoodList(40, $id);
 		if(empty($return['data'])) {
 			echo '没有要采集的数据'.PHP_EOL;
 			return false;
