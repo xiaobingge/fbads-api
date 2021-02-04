@@ -25,8 +25,8 @@ class ClickController extends Controller
 				}
 			}
 
-			header("location:".$url);
-			return true;
+			// header("location:".$url);
+			return redirect($url);
 		}
 
 
