@@ -15,39 +15,11 @@ use Intervention\Image\ImageManager;
 class ShoplazaService
 {
 
-//https://zalikera.myshoplaza.com/admin
-//域名：www.zalikera.com/
-//token: Ms-oWl0O9m3lJJBhexQqSr1P2YHMeT2oiFnnWv-nWl8
-//App UID:3Svnd4RAjNFF1vWJzMFfxwoWZMSR5uoTJWpzBp5Ar74
-//App Secret:Vxlo1OgGsQstccIrdrb40gCX75RpXWVjk9JnCC0n3qo
+    // shopify Api Version 2021-01
+    private $_shopifyApiVersion = '2021-01';
 
-// 店铺自带域名：https://uedress.myshoplaza.com/
-// 绑定域名：uedress.com
-//token:5M7sTI-1LKrGXSbVSqndgBzc9SoXdX4JCbBcPmOvuVM
-//app uid:i7rX09euDgIvk0GK4TvP3w-WoZrRRnJgf4A2OM9KK-A
-//app secret:sP5RbQHCjN_CpEl2o3NrFZUmyGgEhJUNkADMQaYhdrY
-
-//https://lumylus8.myshoplaza.com/admin
-//token：nDOnuFU8UQQPUgUqbFYvuh1bJwx_Q7SQxMwV0rtPQik
-//app uid ：IR-ZUrqNOSgreSw34pLKSrdpthtllD9DtB9Y5QD41w8
-//App Secret： UEH3XmUTIDHZwBJdRhVkRDM9xh-nniJcsefVSVdD8A4
-
-//https://sharelily.myshoplaza.com/
-//token:XFY1UXoxqZz9sp77fOJ7snHk9a0GyuGt2iNE4SwIJFY
-//appuid:CEixqo3cQb0XeyfwQob5lDTHzg0LCd94-HX9USQLAl8
-//app secret:7dyuCT3ToLq9_U59NhS7Qd5R877ke09IoS0S3akUCfY
-
-//https://jeafly.myshoplaza.com/admin
-//token:M8k3mCoGfCrm4h2tmrG9dmgoEJo7yPuGBCJ9bmHe3d4
-//appuid:YsbyU1kGoiMJnN25ReDbjCKZVR4ApX1QZqQEA9c63pk
-//app secret:xiLFQ3M_mJUC7KeauCSBF4y5GtF0UQ6aa63gZ7rSAhY
-
-//https://ifashionfull.myshoplaza.com/
-//token:O4Pzl2TP_tWhs3fnBlcIYHAo5BavV-cZOQnplUOULxw
-//app uid:myWtnHc2dowLSr0pM0Uqg860SYlZyN1Kg6nQRywltic
-//app secret: EEp2IJ3X7H8YmkQ8hsdsZPWYpdOwxkFW-166p1ZuzuM
-
-//version:2020-01
+    // shoplazza Api Version 2020-01
+    private $_shoplazzaApiVersion = '2020-07';
 
     private $urlPre = [];
 
