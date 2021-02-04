@@ -51,6 +51,7 @@ class FaceCollectCommand extends BaseCommand
 			Redis::expire($urlMd5, 300);
 
 			$return = $faceCollectLogic->getGoodUrlByCollectUrl($collect['fcc_url']);
+			echo $collect['fcc_url'].PHP_EOL;
 			echo json_encode($return, JSON_UNESCAPED_UNICODE).PHP_EOL;
 
 			//添加采集到的商品链接
