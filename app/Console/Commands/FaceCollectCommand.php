@@ -14,7 +14,7 @@ class FaceCollectCommand extends BaseCommand
      *
      * @var string
      */
-    protected $signature = 'faceCollect:cai {--id=} ';
+    protected $signature = 'faceCollect:cai {--id=} {--debug=}';
 
     /**
      * The console command description.
@@ -30,6 +30,10 @@ class FaceCollectCommand extends BaseCommand
      */
     public function handle() {
 		$id = $this->option('id');
+		$debug = $this->option('debug');
+		if($debug) {
+			$this->test();
+		}
 		$faceCollectLogic = new FaceCollectLogic();
 		$return  = $faceCollectLogic->getCollectList(1, $id);
 		if(empty($return['data'])) {
@@ -57,15 +61,13 @@ class FaceCollectCommand extends BaseCommand
 		}
 
 		echo '脚本执行完成'.PHP_EOL;
-
     }
 
 
     public function  test() {
 		$faceCollectLogic = new FaceCollectLogic();
-		$url = "https://www.rinkpad.com/collections/track-pants-54757/";
+		$url = "https://shecherry.com/collections/womens-tee";
 		$return = $faceCollectLogic->getGoodUrlByCollectUrl($url);
-
 		dump($return);die;
 	}
 

@@ -12,7 +12,7 @@ use App\Models\FaceGoodsImage;
 use App\Models\FaceGoodsOption;
 use App\Models\FaceGoodsSku;
 
-class GoodFormatLogic  {
+class GoodFormatLogic extends BaseLogic {
 	public function formatGoodData($num, ...$paramsArr){
 		$method = 'formatGoodData_'.$num;
 		return call_user_func_array([$this, $method], $paramsArr);
@@ -557,15 +557,6 @@ class GoodFormatLogic  {
 			},
 			$str);
 		return $str;
-	}
-
-
-	public static function getReturnArr($code, $msg , $data=[]) {
-		return [
-			'code' => $code,
-			'msg' => $msg,
-			'data' => $data
-		];
 	}
 
 }
