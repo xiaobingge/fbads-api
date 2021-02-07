@@ -12,7 +12,7 @@ class FaceCollectLogic extends BaseLogic {
 		1 => [
 			'www.onevise.com',
 			'www.rinkpad.com',
-
+			'www.oasisjoy.com'
 		],
 		2 => [
 			'www.sparknion.com',
@@ -30,6 +30,7 @@ class FaceCollectLogic extends BaseLogic {
 		],
 		4 => [
 			'shecherry.com',
+
 		]
 	];
 
