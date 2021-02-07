@@ -226,16 +226,31 @@ class GoodFormatLogic extends BaseLogic {
 
 
 	public static function formatGoodData_503($goodArr, $htmlStr, $url) {
-		//匹配得到主图
-		preg_match_all('#<a\s*href="javascript:void\(0\)\s*"\s*title="(?<colors>.*?)"\s*data-url="(?:.*?)"\s*data-main-img="(?<main_img>.*?)">#ims', $htmlStr, $mainImgMatch);
-		if(empty($mainImgMatch['colors']) || empty($mainImgMatch['main_img'])) {
-			return [];
+		if($goodArr[0]['Color']) {
+			//匹配得到主图
+			preg_match_all('#<a\s*href="javascript:void\(0\)\s*"\s*title="(?<colors>.*?)"\s*data-url="(?:.*?)"\s*data-main-img="(?<main_img>.*?)">#ims', $htmlStr, $mainImgMatch);
+			if(empty($mainImgMatch['colors']) || empty($mainImgMatch['main_img'])) {
+				return [];
+			}
+		}else{
+			preg_match_all('#data-bigimg="(?<main_img>.*?)"#ims', $htmlStr, $mainImgMatch);
+			if(empty($mainImgMatch['main_img'])) {
+				return [];
+			}
 		}
 
 		$skuImgArr = [];
-		foreach($mainImgMatch['colors'] as $k=>$v) {
-			$v  =  strtolower(preg_replace('/\s*/', '', $v));
-			$skuImgArr[$v] = $mainImgMatch['main_img'][$k];
+		if($mainImgMatch['colors']) {
+			foreach($mainImgMatch['colors'] as $k=>$v) {
+				$v  =  strtolower(preg_replace('/\s*/', '', $v));
+				$skuImgArr[$v] = $mainImgMatch['main_img'][$k];
+			}
+		}else {
+			//如果没有颜色，自定义颜色key
+			foreach($mainImgMatch['main_img'] as $k=>$v) {
+				$ck = 'color_'.$k;
+				$skuImgArr[$ck] = $v;
+			}
 		}
 
 		//通过链接地址获取商品handle
@@ -246,8 +261,11 @@ class GoodFormatLogic extends BaseLogic {
 		}
 
 		$skuInfo = $goodArr[0];
-		$color =  strtolower(preg_replace('/\s*/', '', $skuInfo['Color']));
-
+		if($skuInfo['Color']) {
+			$color =  strtolower(preg_replace('/\s*/', '', $skuInfo['Color']));
+		}else {
+			$color = 'color_0';
+		}
 
 		$goodDetailArr['id'] = $goodHandleMatch[1];
 		$goodDetailArr['title'] = $skuInfo['goods_name'];
@@ -263,7 +281,11 @@ class GoodFormatLogic extends BaseLogic {
 		$totalStockNum = 0;
 		$goodImageArr = [];
 		foreach($goodArr as $key=>$sku) {
-			$color = strtolower(preg_replace('/\s*/', '', $sku['Color']));
+			if($skuInfo['Color']) {
+				$color = strtolower(preg_replace('/\s*/', '', $sku['Color']));
+			}else {
+				$color = 'color_'.$key;
+			}
 			$skuImage = $skuImgArr[$color];
 
 			if(!in_array($skuImage, $goodImageArr)) {
@@ -292,13 +314,12 @@ class GoodFormatLogic extends BaseLogic {
 			$skuArr['id'] = $sku['goods_id'];
 			$skuArr['created_at'] = date('Y-m-d H:i:s');
 			$skuArr['inventory_quantity'] = $stock;
-			$skuArr['option1'] = $sku['Color'];
+			$skuArr['option1'] = $sku['Color'] ? $sku['Color'] : 'commoncolor';
 			$skuArr['option2'] =  $sku['Size'];
 			$skuArr['position'] =  $key+1;
 
 			$goodDetailArr['variants'][] = $skuArr;
 		}
-
 		unset($goodImageArr);
 
 		$goodDetailArr = self::getGoodOptions($goodDetailArr);
@@ -471,8 +492,8 @@ class GoodFormatLogic extends BaseLogic {
 		if(empty($goodDetailArr['variants'])) {
 			return $goodDetailArr;
 		}
-		$option1 = array_unique(array_column($goodDetailArr['variants'], 'option1'));
-		$option2 = array_unique(array_column($goodDetailArr['variants'], 'option2'));
+		$option1 = array_merge(array_unique(array_column($goodDetailArr['variants'], 'option1')));
+		$option2 = array_merge(array_unique(array_column($goodDetailArr['variants'], 'option2')));
 		$time = time().mt_rand(1,9999);
 		if($option1) {
 			$goodDetailArr['options'][] = [
