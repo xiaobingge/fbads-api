@@ -118,6 +118,7 @@ class FaceGoodLogic extends  BaseLogic {
 			502 => "/const\s*product\s*=\s*(.*?);\s*const/ims",
 			503 => "/same_goods_list_sale\s*=\s*(.*?}]);/ims",
 			504 => "/var\s*meta\s*=\s*(.*?}});/ims",
+			505 => "/var\s*google_goods_item\s*=\s*(.*?})/ims"
 		];
 
 		$site = 0;

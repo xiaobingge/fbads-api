@@ -50,7 +50,7 @@ class GoodFormatLogic extends BaseLogic {
 			}
 		}
 
-		if($site == 503) {
+		if($site == 503 || $site == 505) {
 			preg_match('/<div\s*class="good-desc">(.*?)<\/div><div\s*class="goods-delivery">/ims', $data, $detailMatch);
 			if($detailMatch) {
 				$detailDesc = $detailMatch[1];
@@ -394,6 +394,71 @@ class GoodFormatLogic extends BaseLogic {
 
 			$goodDetailArr['variants'][] = $skuArr;
 		}
+
+		unset($goodImageArr);
+
+		$goodDetailArr = self::getGoodOptions($goodDetailArr);
+		$goodDetailArr['inventory_quantity'] = $totalStockNum;
+		return $goodDetailArr;
+	}
+
+
+	public static function formatGoodData_505($goodArr, $htmlStr, $url) {
+		//匹配得到主图
+		preg_match_all('#data-bigimg="(?<main_img>.*?)"#ims', $htmlStr, $mainImgMatch);
+		if(empty($mainImgMatch['main_img'])) {
+			return [];
+		}
+
+		$skuImgArr = ['commoncolor'=> $mainImgMatch['main_img'][0]];
+
+		//通过链接地址获取商品handle
+		$hostArr = parse_url($url);
+		preg_match('#/(.*?)-product(\d+)#', $hostArr['path'], $goodHandleMatch);
+		if(empty($goodHandleMatch[1])) {
+			return [];
+		}
+
+		$color =  'commoncolor';
+		$goodDetailArr['id'] = $goodHandleMatch[1];
+		$goodDetailArr['title'] = $goodArr['name'];
+		$goodDetailArr['handle'] = $goodHandleMatch[1];
+		$goodDetailArr['created_at'] =  date('Y-m-d H:i:s');
+		$goodDetailArr['image']['src'] =  $skuImgArr[$color];
+		$goodDetailArr['description'] = '';
+		$goodDetailArr['updated_at'] = date('Y-m-d H:i:s');
+		$goodDetailArr['published_at'] = date('Y-m-d H:i:s');
+		$goodDetailArr['vendor'] = '';
+		$goodDetailArr['tags'] = '';
+
+		foreach($mainImgMatch['main_img'] as $key=>$img) {
+			$goodDetailArr['images'][] = [
+				'src' => $img,
+				'id' => sprintf('%u',crc32($goodArr['id'].md5($img).time().$key))
+			];
+		}
+
+		//sku信息
+		$totalStockNum = mt_rand(100,2000);
+		$imgArr = [
+			'src' => $mainImgMatch['main_img'][0],
+			'width' => 0,
+			'height' => 0,
+		];
+		$skuArr['image'] = $imgArr;
+		$skuArr['barcode'] = '';
+		$skuArr['compare_at_price'] = $goodArr['price'];
+		$skuArr['price'] =  $goodArr['price'];
+		$skuArr['product_id'] = $goodDetailArr['id'];
+		$skuArr['sku'] = '';
+		$skuArr['id'] = $goodArr['id'];
+		$skuArr['created_at'] = date('Y-m-d H:i:s');
+		$skuArr['inventory_quantity'] = $totalStockNum;
+		$skuArr['option1'] = $color;
+		$skuArr['option2'] =  'common';
+		$skuArr['position'] =  1;
+
+		$goodDetailArr['variants'][] = $skuArr;
 
 		unset($goodImageArr);
 
