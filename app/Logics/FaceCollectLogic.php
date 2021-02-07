@@ -24,6 +24,7 @@ class FaceCollectLogic extends BaseLogic {
 			'www.ifashionfull.com',
 			'www.seelily.com',
 			'www.hercoco.com',
+			'www.leopardcose.com'
 		],
 		3 => [
 			'www.soulmiacollection.com',
