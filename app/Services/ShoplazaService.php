@@ -984,7 +984,7 @@ class ShoplazaService
             if (empty($product_id_count)) {
                 $max_goods_id = $redis->get($shoplaza_max_key);
                 $max_goods_id = empty($max_goods_id) ? 0 : $max_goods_id;
-                $goods_list = FaceGoods::where('id' , '>', $max_goods_id)->get();
+                $goods_list = FaceGoods::where('id' , '>', $max_goods_id)->where('created_at', '<', date('Y-m-d H:i:s', strtotime('-1 hour')))->get();
                 if (empty($goods_list)) {
                     return;
                 }
