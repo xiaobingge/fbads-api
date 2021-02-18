@@ -6,7 +6,6 @@ use App\Models\FaceGoods;
 use App\Models\FaceGoodsRs;
 use App\Services\ShoplazaService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Arr;
 
 class PushFaceGoodsCommand extends Command
 {
@@ -15,7 +14,7 @@ class PushFaceGoodsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'push:goods {shop_key} {--productId=}';
+    protected $signature = 'push:goods {shop_key} {--productId=} {--ignore : Ignore number of errors}';
 
     /**
      * The console command description.
@@ -34,6 +33,7 @@ class PushFaceGoodsCommand extends Command
     {
         $shop_key = $this->argument('shop_key');
         $productId = $this->option('productId');
+        $ignore = $this->option('ignore');
 
         $shop_web = app(ShoplazaService::class)->getShopifyUrl($shop_key);
         if (empty($shop_web)) {
@@ -62,7 +62,7 @@ class PushFaceGoodsCommand extends Command
             }
         }
 
-        $result = app(ShoplazaService::class)->createshopifygoods($shop_key, $productIds);
+        $result = app(ShoplazaService::class)->createshopifygoods($shop_key, $productIds, $ignore);
         if (is_array($result)) {
             $this->info("成功处理{$result['success']}个,失败{$result['failed']}个");
         } else {

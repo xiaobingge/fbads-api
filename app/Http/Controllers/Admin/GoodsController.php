@@ -153,4 +153,20 @@ class GoodsController extends Controller
         return success(['items' => $items]);
     }
 
+    public function fail_hash()
+    {
+        $shoplaza_faile_hash = 'redis_goods_list_faile_shopify_hash';
+        $keys = \Redis::connection('default')->hkeys($shoplaza_faile_hash);
+        return success(['items' => $keys]);
+    }
+
+    public function fail_push(Request $request)
+    {
+        $productId = $request->input('id');
+        if (empty($id)) {
+            return error(2001, 'id 为空');
+        }
+        \Artisan::call("push:goods", ['shop_key' => 202, '--productId' => $productId, '--ignore' => true]);
+        return success();
+    }
 }

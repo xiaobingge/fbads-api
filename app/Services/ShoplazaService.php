@@ -8,6 +8,7 @@ use App\Models\FaceGoodsImage;
 use App\Models\FaceGoodsOption;
 use App\Models\FaceGoodsSku;
 use Intervention\Image\ImageManager;
+use TheSeer\Tokenizer\Exception;
 
 /**
  * Class ShoplazaLogic Shoplaza
@@ -962,10 +963,11 @@ class ShoplazaService
      * 创建shopify商品
      * @param int   $shop_key  需要同步的站点id
      * @param array $products  需要同步的商品id
+     * @param bool  $ignoreNumOfErr 忽略错误次数，进入继续执行
      *
      * @return
      */
-    public function createshopifygoods($shop_key, $products = [])
+    public function createshopifygoods($shop_key, $products = [], $ignoreNumOfErr = false)
     {
         $shopify_web = $this->getShopifyUrl($shop_key);
         if (empty($shopify_web)) {
@@ -1022,7 +1024,7 @@ class ShoplazaService
             }
 
             $fail_try_cnt = $redis->hget($shoplaza_faile_hash, $product_id);
-            if ($fail_try_cnt >= 3) {
+            if ($fail_try_cnt >= 3 && !$ignoreNumOfErr) {
                 // 已经失败3次了，放弃治疗;
                 mLog($this->logFileName.'_fail.txt', $product_id . 'upload falid : try num : ' . $fail_try_cnt);
                 continue;
@@ -1175,6 +1177,9 @@ class ShoplazaService
             try {
                 $res = $this->getShopifyClient(20)->request('POST', $url, ['json' => ['product' => $postData]]);
                 $result = json_decode((string)$res->getBody(), true);
+                if (empty($result['product']['id'])) {
+                    throw new Exception('非正常放回，错误信息' . print_r($result, true));
+                }
                 mLog($this->logFileName, $result['product']['id'] . '-' . $result['product']['handle']);
                 // 入库，写关联关系
                 FaceGoodsRs::firstOrCreate([

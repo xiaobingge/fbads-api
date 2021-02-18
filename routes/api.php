@@ -48,6 +48,9 @@ Route::group(['middleware' => ['cors','multiauth:api']], function () {
     Route::get('/goods/sku', 'Admin\GoodsController@goods_sku');
     Route::get('/goods/option', 'Admin\GoodsController@goods_option');
 
+    Route::get('/goods/fail_hash', 'Admin\GoodsController@fail_hash');
+    Route::post('/goods/fail_push', 'Admin\GoodsController@fail_push');
+
 });
 
 
