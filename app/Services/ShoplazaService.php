@@ -1147,9 +1147,14 @@ class ShoplazaService
             $option_list = FaceGoodsOption::where('product_id', $product_id)->get();
             if ($option_list->isNotEmpty()) {
                 foreach ($option_list as $option) {
+                    $optVal = array_filter(json_decode($option->values, true));
+                    if (empty($optVal)) {
+                        continue;
+                    }
+
                     $postData['options'][] = [
                         'name' => $option->name,
-                        'values' => json_decode($option->values, true),
+                        'values' => $optVal,
                         'position' => $option->position
                     ];
                 }
