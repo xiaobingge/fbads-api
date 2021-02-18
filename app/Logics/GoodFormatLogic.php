@@ -493,7 +493,7 @@ class GoodFormatLogic extends BaseLogic {
 			return $goodDetailArr;
 		}
 		$option1 = array_merge(array_unique(array_column($goodDetailArr['variants'], 'option1')));
-		$option2 = array_merge(array_unique(array_column($goodDetailArr['variants'], 'option2')));
+		$option2 = array_merge(array_filter(array_unique(array_column($goodDetailArr['variants'], 'option2'))));
 		$time = time().mt_rand(1,9999);
 		if($option1) {
 			$goodDetailArr['options'][] = [
