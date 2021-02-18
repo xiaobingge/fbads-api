@@ -104,7 +104,7 @@ class ShoplazaService
     {
         if (!isset(static::$_http_instance[$index]) || !(static::$_http_instance[$index] instanceof \GuzzleHttp\Client)) {
             static::$_http_instance[$index] = new \GuzzleHttp\Client([
-                'timeout'  => 30,
+                'timeout'  => 70,
             ]);
         }
 

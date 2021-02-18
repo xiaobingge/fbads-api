@@ -155,15 +155,19 @@ class GoodsController extends Controller
 
     public function fail_hash()
     {
-        $shoplaza_faile_hash = 'redis_goods_list_faile_shopify_hash';
-        $keys = \Redis::connection('default')->hkeys($shoplaza_faile_hash);
-        return success(['items' => $keys]);
+        try {
+            $shoplaza_faile_hash = 'redis_goods_list_faile_shopify_hash';
+            $keys = \Redis::connection('default')->hkeys($shoplaza_faile_hash);
+            return success(['items' => $keys]);
+        }catch (\Exception $e) {
+            return error(2001, $e->getMessage());
+        }
     }
 
     public function fail_push(Request $request)
     {
         $productId = $request->input('id');
-        if (empty($id)) {
+        if (empty($productId)) {
             return error(2001, 'id 为空');
         }
         \Artisan::call("push:goods", ['shop_key' => 202, '--productId' => $productId, '--ignore' => true]);
