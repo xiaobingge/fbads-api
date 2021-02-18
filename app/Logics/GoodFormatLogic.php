@@ -267,7 +267,7 @@ class GoodFormatLogic extends BaseLogic {
 			$color = 'color_0';
 		}
 
-		$goodDetailArr['id'] = $goodHandleMatch[1];
+		$goodDetailArr['id'] = $goodHandleMatch[1].$goodHandleMatch[2];
 		$goodDetailArr['title'] = $skuInfo['goods_name'];
 		$goodDetailArr['handle'] = $goodHandleMatch[1];
 		$goodDetailArr['created_at'] =  date('Y-m-d H:i:s');
@@ -441,7 +441,7 @@ class GoodFormatLogic extends BaseLogic {
 		}
 
 		$color =  'commoncolor';
-		$goodDetailArr['id'] = $goodHandleMatch[1];
+		$goodDetailArr['id'] = $goodHandleMatch[1].$goodHandleMatch[2];
 		$goodDetailArr['title'] = $goodArr['name'];
 		$goodDetailArr['handle'] = $goodHandleMatch[1];
 		$goodDetailArr['created_at'] =  date('Y-m-d H:i:s');
