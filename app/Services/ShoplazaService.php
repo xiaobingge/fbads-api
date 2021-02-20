@@ -973,14 +973,14 @@ class ShoplazaService
         if (empty($shopify_web)) {
             return false;
         }
-        $shoplaza_key = 'redis_goods_list_shopify_' . $shop_key;
+        $shoplaza_redis_pre_key = 'redis_goods_list_shopify_' . $shop_key;
         $shoplaza_faile_key = 'redis_goods_list_faile_shopify_list';
         // 失败次数
         $shoplaza_faile_hash = 'redis_goods_list_faile_shopify_hash';
         $shoplaza_max_key = 'redis_goods_max_shopify_' . $shop_key;
         $redis = Redis::connection('default');
         if (empty($products)) {
-            $product_id_count = $redis->llen($shoplaza_key);
+            $product_id_count = $redis->llen($shoplaza_redis_pre_key);
             if (empty($product_id_count)) {
                 $max_goods_id = $redis->get($shoplaza_max_key);
                 $max_goods_id = empty($max_goods_id) ? 0 : $max_goods_id;
@@ -989,7 +989,7 @@ class ShoplazaService
                     return;
                 }
                 foreach ($goods_list as $info) {
-                    $redis->rPush($shoplaza_key, $info->product_id);
+                    $redis->rPush($shoplaza_redis_pre_key, $info->product_id);
                     $max_id = $info->id;
                 }
                 $redis->set($shoplaza_max_key, $max_id);
@@ -1005,7 +1005,7 @@ class ShoplazaService
                 if (empty($tmp_p)) {
                     break;
                 }
-                $redis->rPush($shoplaza_key, $tmp_p);
+                $redis->rPush($shoplaza_redis_pre_key, $tmp_p);
             } while (true);
         }
 
@@ -1016,7 +1016,7 @@ class ShoplazaService
             if (!empty($products)) {
                 $product_id = array_pop($products);
             } else {
-                $product_id = $redis->lpop($shoplaza_key);
+                $product_id = $redis->lpop($shoplaza_redis_pre_key);
             }
 
             if (empty($product_id)) {
@@ -1212,6 +1212,150 @@ class ShoplazaService
         }
 
         return ['success' => $cnt_success, 'failed' => $cnt_faile];
+    }
+
+
+
+
+    /**
+     * @param int $shoplaza_key  需要同.步的站点
+     * @param array $products
+     * @param bool $ignoreNumOfErr
+     */
+    public function createshoplazagoods($shoplaza_key, $products=[], $ignoreNumOfErr = false){
+        $shoplaza_web = $this->getUrl($shoplaza_key);
+        if (empty($shoplaza_web)) {
+            return false;
+        }
+
+        $shoplaza_redis_pre_key = 'redis_goods_list_shoplaza_'.$shoplaza_key;
+        $shoplaza_faile_key = 'redis_goods_list_faile_shoplaza'.$shoplaza_key;
+        $shoplaza_max_key = 'redis_goods_max_shoplaza_'.$shoplaza_key;
+        $redis = Redis::connection('default');
+
+        if (empty($products)) {
+            $product_id_count = $redis->llen($shoplaza_redis_pre_key);
+            if (empty($product_id_count)) {
+                $max_goods_id = $redis->get($shoplaza_max_key);
+                $max_goods_id = empty($max_goods_id) ? 0 : $max_goods_id;
+                $goods_list = FaceGoods::where(['id' => ['gt', $max_goods_id]])->where('created_at', '<', date('Y-m-d H:i:s', strtotime('-1 hour')))->select();
+                if (empty($goods_list)) {
+                    return;
+                }
+                foreach ($goods_list as $info) {
+                    $redis->rPush($shoplaza_redis_pre_key, $info['product_id']);
+                    $max_id = $info['id'];
+                }
+                $redis->set($shoplaza_max_key, $max_id);
+            }
+        }
+
+
+        // 需要过滤的关键字
+        $filterKey = app(FaceGoodLogic::class)->getFilterKeyArr();
+
+        while(true){
+            if (!empty($products)) {
+                $product_id = array_pop($products);
+            } else {
+                $product_id = $redis->lpop($shoplaza_redis_pre_key);
+            }
+
+            if (empty($product_id)) {
+                $product_id = $redis->lpop($shoplaza_faile_key);
+            }
+            if (empty($product_id)) {
+                break;
+            }
+
+            //首先查找是否已经上传到对应网站
+            if(FaceGoodsRs::where('type',$shoplaza_key)->where('shop_index', $shoplaza_web)->where('resource_product_id', $product_id)->exists()){
+                continue;
+            }
+            $goods_info = FaceGoods::where('product_id', $product_id)->first();
+            if (empty($goods_info)) {
+                continue;
+            }
+
+            $postData = $data = $image_arr = $temp = array();
+            $postData['title'] = str_replace($filterKey, '', $goods_info->title);
+            $postData['published'] = false;
+            $postData['requires_shipping'] =true;
+            $postData['tags'] = str_replace($filterKey, '', $goods_info->tags);
+            $postData['vendor'] = $goods_info->vendor;
+            $postData['handle'] = $goods_info->handle;
+            $postData['has_only_default_variant'] =false;
+
+            if (!empty($goods_info->content)) {
+                $postData['description'] = str_replace($filterKey, '', htmlspecialchars_decode($goods_info->content));
+            } elseif (!empty($goods_info->description)) {
+                $postData['description'] = str_replace($filterKey, '', htmlspecialchars_decode($goods_info->description));
+            } else {
+                $postData['description'] = '';
+            }
+
+
+
+            $image_list = FaceGoodsImage::where('product_id', $product_id)->get();
+            foreach($image_list as  $imageinfo){
+                $postData['images'][] = [
+                    'src' =>  $imageinfo->src,
+                    'width'=> (int)$imageinfo->width,
+                    'height'=> (int)$imageinfo->height,
+                ];
+                $image_arr[$imageinfo['image_id']] = $imageinfo;
+            }
+
+            $sku_list = FaceGoodsSku::where('product_id', $product_id)->get();
+            foreach($sku_list as $sk => $skuinfo){
+                $temp = [
+                    'option1' => empty($skuinfo->option1) ? null : $skuinfo->option1,
+                    'option2' => empty($skuinfo->option2) ? null : $skuinfo->option2,
+                    'option3' => empty($skuinfo->option3) ? null : $skuinfo->option3,
+                    'compare_at_price' => (double)$skuinfo->compare_at_price,
+                    'price' => (double)$skuinfo->price,
+                    'sku' => $skuinfo->sku,
+                    'barcode' => $skuinfo->barcode,
+                    'note' => substr($skuinfo->title, 0, 18),
+                    'inventory_quantity' => (int)$skuinfo->inventory_quantity,
+                    'weight' => (double)$skuinfo->weight,
+                    'weigh_unit' => $skuinfo->weight_unit,
+                ];
+                if($skuinfo->image_id){
+                    $temp['image'] = ["src"=>$image_arr[$skuinfo->image_id]['src']];
+                }else{
+                    $src = empty($image_list[$sk]->src) ? $image_list[0]->src : $image_list[$sk]->src;
+                    $temp['image'] = ["src" => $src];
+                }
+                // TODO ???
+                $postData['variants'][] = array_filter($temp);
+            }
+
+            $option_list = FaceGoodsOption::where('product_id', $product_id)->get();
+            foreach($option_list as $option){
+                $optVal = array_values(array_filter(json_decode($option->values,true)));
+                if (empty($optVal)) {
+                    continue;
+                }
+
+                $postData['options'][] = [
+                    'name' =>  $option->name,
+                    'values'=> $optVal,
+                ];
+            }
+            $url = $shoplaza_web . '/openapi/2020-01/products';
+            try {
+                $res = $this->getShoplazaClient($shoplaza_key)->request('POST', $url, ['json' => ['product' => $postData]]);
+                $return = (string)$res->getBody();
+                $result = json_decode($return, true);
+                echo $result['product']['id'] . '-' . $result['product']['handle'] . PHP_EOL;
+
+                FaceGoodsRs::updateOrCreate(['resource_product_id' => $product_id, 'product_id' => $result['product']['id'], 'shop_type' => 'shoplazza', 'type' => $shoplaza_key, 'shop_index' => $shoplaza_web]);
+            } catch (\Exception $e) {
+                $redis->rPush($shoplaza_faile_key,$product_id);
+                mLog($this->logFileName, $product_id . '===' . $e->getMessage());
+            }
+        }
     }
 
 }
