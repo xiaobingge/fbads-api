@@ -298,6 +298,11 @@ class ShoplazaService
             }
         }
 
+        if ($imageNewW > 1500) { // 尺寸过大时
+            $imageNewW = 1500;
+            $imageNewH = 2000;
+        }
+
         $fileName = $this->download($imageSrc, '/shoplaza', md5($imageSrc));
         $imageManager = new ImageManager();
 
